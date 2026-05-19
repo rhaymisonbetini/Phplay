@@ -1,0 +1,27 @@
+appId: com.phplay.app
+productName: Phplay
+copyright: Copyright © 2024 rhaymisonbetini
+
+directories:
+  buildResources: resources
+
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,CHANGELOG.md}'
+  - '!{.env,.env.*,.npmrc}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!documento-tecnico-produto-phplay.md'
+
+linux:
+  executableName: phplay
+  target:
+    - target: AppImage
+    - target: deb
+  category: Development
+
+deb:
+  packageCategory: devel
+
+npmRebuild: false
