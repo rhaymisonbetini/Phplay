@@ -5,11 +5,13 @@ import { createHash } from 'crypto'
 import { PhpDetector } from '../php/PhpDetector'
 import { LocalExecutor } from '../executor/LocalExecutor'
 import { FrameworkDetector } from '../project/FrameworkDetector'
+import { RecentProjects } from '../project/RecentProjects'
 import type { ExecutionContext } from '../executor/types'
 
 const phpDetector = new PhpDetector()
 const executor = new LocalExecutor()
 const frameworkDetector = new FrameworkDetector()
+let recentProjects: RecentProjects
 
 function sessionFile(projectPath: string): string {
   const projectHash = createHash('sha256').update(projectPath).digest('hex').slice(0, 12)
@@ -17,6 +19,7 @@ function sessionFile(projectPath: string): string {
 }
 
 export function registerIpcHandlers(): void {
+  recentProjects = new RecentProjects(app.getPath('userData'))
   ipcMain.handle('php:detect', async () => {
     return phpDetector.detect()
   })
@@ -50,5 +53,20 @@ export function registerIpcHandlers(): void {
     } catch {
       return null
     }
+  })
+
+  ipcMain.handle('recent:list', async () => {
+    return recentProjects.list()
+  })
+
+  ipcMain.handle(
+    'recent:add',
+    async (_event, project: { path: string; name: string; framework: string }) => {
+      return recentProjects.add(project)
+    }
+  )
+
+  ipcMain.handle('recent:remove', async (_event, projectPath: string) => {
+    return recentProjects.remove(projectPath)
   })
 }

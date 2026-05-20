@@ -15,7 +15,7 @@ import AppStatusBar from './components/AppStatusBar.vue'
 import WelcomeScreen from './components/WelcomeScreen.vue'
 import PhpConfigModal from './components/PhpConfigModal.vue'
 import ProjectDetectionToast from './components/ProjectDetectionToast.vue'
-import type { ExecutionResult, Framework } from './types/electron'
+import type { ExecutionResult, Framework, RecentProject } from './types/electron'
 
 type ToastState =
   | { type: 'detecting' }
@@ -33,11 +33,11 @@ const selectedPhp = ref<string>('')
 const showPhpConfig = ref(false)
 const toastState = ref<ToastState>(null)
 const lastMetrics = ref<{ timeMs: number; memKb: number } | null>(null)
+const recentProjects = ref<RecentProject[]>([])
 
 const activeSession = computed(() => sessionStore.activeSession)
 const currentPath = computed(() => projectStore.currentProject?.path ?? null)
 
-// Snippet persistence: auto-save on code change, restore on project open
 const { isSaved, restore } = useSnippetPersistence(sessions, currentPath)
 
 onMounted(async () => {
@@ -49,6 +49,8 @@ onMounted(async () => {
   } catch {
     // PHP not found — user will configure manually
   }
+
+  recentProjects.value = (await window.electronAPI.listRecentProjects()) as RecentProject[]
 })
 
 async function runCode(): Promise<void> {
@@ -93,6 +95,14 @@ async function openProject(): Promise<void> {
     // Restore saved snippets for this project
     await restore(path)
 
+    // Record in recents
+    await window.electronAPI.addRecentProject({
+      path: project.path,
+      name: project.name,
+      framework: project.framework
+    })
+    recentProjects.value = (await window.electronAPI.listRecentProjects()) as RecentProject[]
+
     if (project.framework === 'laravel' && !project.hasVendor) {
       toastState.value = { type: 'no-vendor', projectName: project.name }
     } else {
@@ -108,6 +118,25 @@ async function openProject(): Promise<void> {
 function clearOutput(): void {
   const session = activeSession.value
   if (session) sessionStore.setOutput(session.id, null)
+}
+
+async function openRecentProject(path: string): Promise<void> {
+  toastState.value = { type: 'detecting' }
+  try {
+    const project = await projectStore.openProject(path, selectedPhp.value)
+    await restore(path)
+    toastState.value = { type: 'detected', framework: project.framework, projectName: project.name }
+  } catch {
+    toastState.value = { type: 'not-php', path }
+    await window.electronAPI.removeRecentProject(path)
+    recentProjects.value = recentProjects.value.filter((p) => p.path !== path)
+  }
+  setTimeout(() => { toastState.value = null }, 3500)
+}
+
+async function removeRecentProject(path: string): Promise<void> {
+  await window.electronAPI.removeRecentProject(path)
+  recentProjects.value = recentProjects.value.filter((p) => p.path !== path)
 }
 
 function applyCustomPhp(path: string): void {
@@ -141,7 +170,10 @@ useKeyboardShortcuts([
 
       <WelcomeScreen
         v-if="!projectStore.hasProject && phpVersions.length === 0"
+        :recent-projects="recentProjects"
         @open-project="openProject"
+        @open-recent="openRecentProject"
+        @remove-recent="removeRecentProject"
       />
 
       <SplitPane v-else class="flex-1">
