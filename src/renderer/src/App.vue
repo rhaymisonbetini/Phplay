@@ -34,6 +34,7 @@ const showPhpConfig = ref(false)
 const toastState = ref<ToastState>(null)
 const lastMetrics = ref<{ timeMs: number; memKb: number } | null>(null)
 const recentProjects = ref<RecentProject[]>([])
+const lspReady = ref(false)
 
 const activeSession = computed(() => sessionStore.activeSession)
 const currentPath = computed(() => projectStore.currentProject?.path ?? null)
@@ -103,6 +104,12 @@ async function openProject(): Promise<void> {
     })
     recentProjects.value = (await window.electronAPI.listRecentProjects()) as RecentProject[]
 
+    // Start LSP for this project (non-blocking — indexing can take a moment)
+    lspReady.value = false
+    window.electronAPI.lspStart(path).then((result) => {
+      lspReady.value = result.ok
+    })
+
     if (project.framework === 'laravel' && !project.hasVendor) {
       toastState.value = { type: 'no-vendor', projectName: project.name }
     } else {
@@ -125,6 +132,10 @@ async function openRecentProject(path: string): Promise<void> {
   try {
     const project = await projectStore.openProject(path, selectedPhp.value)
     await restore(path)
+    lspReady.value = false
+    window.electronAPI.lspStart(path).then((result) => {
+      lspReady.value = result.ok
+    })
     toastState.value = { type: 'detected', framework: project.framework, projectName: project.name }
   } catch {
     toastState.value = { type: 'not-php', path }
@@ -182,6 +193,8 @@ useKeyboardShortcuts([
             :code="activeSession?.code ?? '<?php\n\n'"
             :is-running="activeSession?.isRunning ?? false"
             :can-run="!!selectedPhp && !!activeSession"
+            :project-path="currentPath"
+            :lsp-ready="lspReady"
             @update:code="sessionStore.setCode(sessionStore.activeSessionId, $event)"
             @run="runCode"
           />

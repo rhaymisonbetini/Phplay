@@ -26,7 +26,34 @@ const api = {
     ipcRenderer.invoke('recent:add', project),
 
   removeRecentProject: (projectPath: string): Promise<void> =>
-    ipcRenderer.invoke('recent:remove', projectPath)
+    ipcRenderer.invoke('recent:remove', projectPath),
+
+  // ── Intelephense LSP ────────────────────────────────────────────────────────
+  lspStart: (projectPath: string): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('lsp:start', projectPath),
+
+  lspStop: (): Promise<void> => ipcRenderer.invoke('lsp:stop'),
+
+  lspIsReady: (): Promise<boolean> => ipcRenderer.invoke('lsp:isReady'),
+
+  lspDidOpen: (uri: string, text: string, version: number): Promise<void> =>
+    ipcRenderer.invoke('lsp:didOpen', uri, text, version),
+
+  lspDidChange: (uri: string, text: string, version: number): Promise<void> =>
+    ipcRenderer.invoke('lsp:didChange', uri, text, version),
+
+  lspDidClose: (uri: string): Promise<void> => ipcRenderer.invoke('lsp:didClose', uri),
+
+  lspCompletion: (uri: string, line: number, character: number): Promise<unknown> =>
+    ipcRenderer.invoke('lsp:completion', uri, line, character),
+
+  lspHover: (uri: string, line: number, character: number): Promise<unknown> =>
+    ipcRenderer.invoke('lsp:hover', uri, line, character),
+
+  lspSignatureHelp: (uri: string, line: number, character: number): Promise<unknown> =>
+    ipcRenderer.invoke('lsp:signatureHelp', uri, line, character),
+
+  lspPathToUri: (path: string): Promise<string> => ipcRenderer.invoke('lsp:pathToUri', path)
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)
