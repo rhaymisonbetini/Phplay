@@ -47,6 +47,7 @@ const runLabel = computed(() => (props.isRunning ? 'Running…' : '▶ Run'))
       :model-value="code"
       class="flex-1 overflow-hidden"
       @update:model-value="emit('update:code', $event)"
+      @run="emit('run')"
     />
   </div>
 </template>

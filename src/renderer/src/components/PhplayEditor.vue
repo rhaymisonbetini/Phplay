@@ -26,6 +26,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
+  run: []
 }>()
 
 const editorContainer = ref<HTMLElement | null>(null)
@@ -58,9 +59,9 @@ onMounted(() => {
     emit('update:modelValue', editor!.getValue())
   })
 
-  // Ctrl+Enter to trigger run (emits to parent)
+  // Ctrl+Enter triggers code execution
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
-    emit('update:modelValue', editor!.getValue())
+    emit('run')
   })
 })
 

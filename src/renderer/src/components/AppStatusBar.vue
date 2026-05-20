@@ -13,6 +13,7 @@ const props = withDefaults(
     projectPath?: string
     phpVersions?: Array<{ path: string; version: string }>
     selectedPhp?: string
+    isSaved?: boolean
   }>(),
   {
     framework: 'plain',
@@ -22,7 +23,8 @@ const props = withDefaults(
     memoryUsedKb: null,
     projectPath: undefined,
     phpVersions: () => [],
-    selectedPhp: ''
+    selectedPhp: '',
+    isSaved: true
   }
 )
 
@@ -131,8 +133,24 @@ const currentPhpVersion = computed(() => {
       </div>
     </div>
 
-    <!-- Right side: connection type -->
+    <!-- Right side: saved indicator + connection type -->
     <div class="flex items-center gap-2">
+      <!-- Saved indicator (only shown when project open) -->
+      <span
+        v-if="projectPath"
+        class="status-item gap-1 transition-opacity"
+        :class="isSaved ? 'opacity-40' : 'opacity-100'"
+        :title="isSaved ? 'All changes saved' : 'Saving…'"
+      >
+        <svg v-if="isSaved" width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="text-success">
+          <path d="M1 4l2 2 4-3" />
+        </svg>
+        <span v-else class="spinner" style="width: 7px; height: 7px; border-width: 1px" />
+        <span class="text-2xs">{{ isSaved ? 'saved' : 'saving…' }}</span>
+      </span>
+
+      <span class="text-border-strong" v-if="projectPath">·</span>
+
       <span class="status-item gap-1">
         <span class="h-1.5 w-1.5 rounded-full bg-success" />
         <span>local</span>

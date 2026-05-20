@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useSessionStore } from './stores/session'
 import { useProjectStore } from './stores/project'
+import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts'
+import { useSnippetPersistence } from './composables/useSnippetPersistence'
 import AppTitleBar from './components/AppTitleBar.vue'
 import SessionTabBar from './components/SessionTabBar.vue'
 import SidebarRail from './components/SidebarRail.vue'
@@ -23,6 +26,7 @@ type ToastState =
 
 const sessionStore = useSessionStore()
 const projectStore = useProjectStore()
+const { sessions } = storeToRefs(sessionStore)
 
 const phpVersions = ref<Array<{ path: string; version: string }>>([])
 const selectedPhp = ref<string>('')
@@ -31,6 +35,10 @@ const toastState = ref<ToastState>(null)
 const lastMetrics = ref<{ timeMs: number; memKb: number } | null>(null)
 
 const activeSession = computed(() => sessionStore.activeSession)
+const currentPath = computed(() => projectStore.currentProject?.path ?? null)
+
+// Snippet persistence: auto-save on code change, restore on project open
+const { isSaved, restore } = useSnippetPersistence(sessions, currentPath)
 
 onMounted(async () => {
   try {
@@ -59,10 +67,7 @@ async function runCode(): Promise<void> {
       bootstrapPath: projectStore.currentProject?.bootstrapPath ?? undefined
     })
     sessionStore.setOutput(session.id, result)
-    lastMetrics.value = {
-      timeMs: result.executionTimeMs,
-      memKb: result.memoryUsedKb
-    }
+    lastMetrics.value = { timeMs: result.executionTimeMs, memKb: result.memoryUsedKb }
   } catch (err) {
     sessionStore.setOutput(session.id, {
       stdout: '',
@@ -85,22 +90,19 @@ async function openProject(): Promise<void> {
   try {
     const project = await projectStore.openProject(path, selectedPhp.value)
 
+    // Restore saved snippets for this project
+    await restore(path)
+
     if (project.framework === 'laravel' && !project.hasVendor) {
       toastState.value = { type: 'no-vendor', projectName: project.name }
     } else {
-      toastState.value = {
-        type: 'detected',
-        framework: project.framework,
-        projectName: project.name
-      }
+      toastState.value = { type: 'detected', framework: project.framework, projectName: project.name }
     }
   } catch {
     toastState.value = { type: 'not-php', path }
   }
 
-  setTimeout(() => {
-    toastState.value = null
-  }, 3500)
+  setTimeout(() => { toastState.value = null }, 3500)
 }
 
 function clearOutput(): void {
@@ -115,6 +117,14 @@ function applyCustomPhp(path: string): void {
   selectedPhp.value = path
   projectStore.updatePhpBinary(path)
 }
+
+useKeyboardShortcuts([
+  { key: 'Enter', ctrl: true, handler: runCode },
+  { key: 'c', ctrl: true, shift: true, handler: clearOutput },
+  { key: 't', ctrl: true, handler: () => sessionStore.newSession() },
+  { key: 'w', ctrl: true, handler: () => sessionStore.closeSession(sessionStore.activeSessionId) },
+  { key: 'o', ctrl: true, handler: openProject }
+])
 </script>
 
 <template>
@@ -162,16 +172,13 @@ function applyCustomPhp(path: string): void {
       :execution-time-ms="lastMetrics?.timeMs ?? null"
       :memory-used-kb="lastMetrics?.memKb ?? null"
       :project-path="projectStore.currentProject?.path"
+      :is-saved="isSaved"
       @open-project="openProject"
       @select-php="selectedPhp = $event; projectStore.updatePhpBinary($event)"
       @open-php-config="showPhpConfig = true"
     />
 
-    <PhpConfigModal
-      v-if="showPhpConfig"
-      @close="showPhpConfig = false"
-      @apply="applyCustomPhp"
-    />
+    <PhpConfigModal v-if="showPhpConfig" @close="showPhpConfig = false" @apply="applyCustomPhp" />
 
     <ProjectDetectionToast :state="toastState" @dismiss="toastState = null" />
   </div>
