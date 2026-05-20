@@ -46,6 +46,8 @@ declare global {
       executePhp: (code: string, context: ExecutionContext) => Promise<ExecutionResult>
       openProjectDialog: () => Promise<string | null>
       detectFramework: (projectPath: string) => Promise<ProjectInfo>
+      saveSession: (projectPath: string, sessions: unknown) => Promise<void>
+      loadSession: (projectPath: string) => Promise<unknown>
     }
   }
 }
