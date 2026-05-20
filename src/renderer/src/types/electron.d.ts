@@ -32,12 +32,20 @@ export interface ExecutionResult {
   error?: ExecutionError
 }
 
+export interface ProjectInfo {
+  framework: Framework
+  version: string | null
+  bootstrapPath: string | null
+  hasVendor: boolean
+}
+
 declare global {
   interface Window {
     electronAPI: {
       detectPhp: () => Promise<PhpBinary[]>
       executePhp: (code: string, context: ExecutionContext) => Promise<ExecutionResult>
       openProjectDialog: () => Promise<string | null>
+      detectFramework: (projectPath: string) => Promise<ProjectInfo>
     }
   }
 }
