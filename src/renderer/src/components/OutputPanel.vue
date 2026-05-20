@@ -1,103 +1,102 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue'
 import type { ExecutionResult } from '../types/electron'
+import { formatOutput, parsePhpError } from '../composables/useOutputFormatter'
 
 const props = defineProps<{
   result: ExecutionResult | null
   isRunning: boolean
 }>()
 
-const emit = defineEmits<{
-  clear: []
-}>()
+const emit = defineEmits<{ clear: [] }>()
 
 const outputContainer = ref<HTMLElement | null>(null)
+const stackExpanded = ref(false)
+const copyLabel = ref('Copy')
 
 const hasOutput = computed(() => props.result !== null)
 const hasError = computed(
-  () => props.result && (props.result.exitCode !== 0 || props.result.stderr || props.result.error)
+  () => props.result && (props.result.exitCode !== 0 || !!props.result.stderr)
 )
-const hasStdout = computed(() => props.result && props.result.stdout)
+
+const formatted = computed(() => {
+  if (!props.result?.stdout) return null
+  return formatOutput(props.result.stdout)
+})
+
+const phpError = computed(() => {
+  if (!props.result?.stderr) return null
+  return parsePhpError(props.result.stderr)
+})
 
 const formattedMemory = computed(() => {
   if (!props.result) return null
   const kb = props.result.memoryUsedKb
-  if (kb >= 1024) return `${(kb / 1024).toFixed(1)}MB`
-  return `${kb}KB`
+  if (!kb) return null
+  return kb >= 1024 ? `${(kb / 1024).toFixed(1)}MB` : `${kb}KB`
 })
 
-// Parse PHP error from stderr
-const phpError = computed(() => {
-  if (!props.result?.stderr) return null
-  const stderr = props.result.stderr
-
-  // Match PHP error format: "PHP Fatal error: ... in file.php on line N"
-  const errorMatch = stderr.match(/PHP\s+([\w\s]+):\s+(.*?)\s+in\s+(.*?)\s+on\s+line\s+(\d+)/i)
-  if (errorMatch) {
-    return {
-      type: errorMatch[1].trim(),
-      message: errorMatch[2].trim(),
-      file: errorMatch[3].trim(),
-      line: parseInt(errorMatch[4]),
-      raw: stderr
-    }
-  }
-
-  // Parse error type from stderr (simpler format)
-  const simpleMatch = stderr.match(/^(.*?Error|.*?Warning|.*?Notice|.*?Deprecated):\s*(.*)/s)
-  if (simpleMatch) {
-    return {
-      type: simpleMatch[1].trim(),
-      message: simpleMatch[2].trim(),
-      file: null,
-      line: null,
-      raw: stderr
-    }
-  }
-
-  return { type: 'Error', message: stderr, file: null, line: null, raw: stderr }
-})
-
-// Auto-scroll to bottom when new output arrives
-watch(
-  () => props.result,
-  async () => {
-    if (!outputContainer.value) return
-    await nextTick()
+watch(() => props.result, async () => {
+  stackExpanded.value = false
+  await nextTick()
+  if (outputContainer.value) {
     outputContainer.value.scrollTop = outputContainer.value.scrollHeight
   }
-)
+})
+
+async function copyOutput(): Promise<void> {
+  const text = props.result?.stdout ?? ''
+  if (!text) return
+  await navigator.clipboard.writeText(text)
+  copyLabel.value = 'Copied!'
+  setTimeout(() => { copyLabel.value = 'Copy' }, 2000)
+}
 </script>
 
 <template>
   <div class="flex h-full flex-col overflow-hidden">
-    <!-- Panel header -->
+    <!-- Header -->
     <div class="panel-header justify-between">
-      <div class="flex items-center gap-2 text-xs text-text-muted">
+      <div class="flex items-center gap-2">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
           <rect x="1" y="1" width="10" height="10" rx="1.5" />
           <path d="M3 4h6M3 6h4M3 8h5" />
         </svg>
-        <span>Output</span>
+        <span class="text-xs text-text-muted">Output</span>
+
+        <!-- Type badge -->
+        <span
+          v-if="formatted?.badge"
+          class="output-type-badge"
+          :class="formatted.badge.cls"
+        >
+          {{ formatted.badge.label }}
+        </span>
       </div>
 
       <div class="flex items-center gap-2">
-        <!-- Metrics badge (shown after execution) -->
-        <div v-if="result && !isRunning" class="flex items-center gap-2 text-2xs">
-          <span
-            class="font-mono"
-            :class="hasError ? 'text-error' : 'text-success'"
-          >
+        <!-- Metrics -->
+        <div v-if="result && !isRunning" class="flex items-center gap-1.5 text-2xs font-mono">
+          <span :class="hasError ? 'text-error' : 'text-success'">
             {{ result.executionTimeMs }}ms
           </span>
-          <span v-if="formattedMemory" class="text-text-disabled font-mono">{{ formattedMemory }}</span>
+          <span v-if="formattedMemory" class="text-text-disabled">{{ formattedMemory }}</span>
         </div>
 
-        <!-- Clear button -->
+        <!-- Copy -->
+        <button
+          v-if="formatted && formatted.type !== 'empty'"
+          class="btn-ghost text-2xs"
+          :title="copyLabel"
+          @click="copyOutput"
+        >
+          {{ copyLabel }}
+        </button>
+
+        <!-- Clear -->
         <button
           v-if="hasOutput"
           class="btn-ghost text-2xs"
-          title="Clear output"
           @click="emit('clear')"
         >
           clear
@@ -105,83 +104,148 @@ watch(
       </div>
     </div>
 
-    <!-- Output content area -->
+    <!-- Content -->
     <div ref="outputContainer" class="flex-1 overflow-auto">
-      <!-- Loading state -->
+
+      <!-- Running -->
       <div v-if="isRunning" class="flex h-full flex-col items-center justify-center gap-3 text-text-muted">
         <div class="spinner" style="width: 20px; height: 20px; border-width: 2px" />
         <span class="text-xs">Running…</span>
       </div>
 
       <!-- Empty state -->
-      <div
-        v-else-if="!hasOutput"
-        class="flex h-full flex-col items-center justify-center gap-2 text-text-disabled"
-      >
+      <div v-else-if="!hasOutput" class="flex h-full flex-col items-center justify-center gap-2 text-text-disabled">
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.4">
           <rect x="4" y="4" width="24" height="24" rx="3" />
           <path d="M9 12h14M9 17h10M9 22h12" stroke-linecap="round" />
         </svg>
-        <p class="text-xs">Press <kbd class="rounded bg-bg-elevated px-1 py-0.5 font-mono text-2xs text-text-muted">▶ Run</kbd> or <kbd class="rounded bg-bg-elevated px-1 py-0.5 font-mono text-2xs text-text-muted">Ctrl+Enter</kbd> to execute</p>
+        <p class="text-xs">
+          Press
+          <kbd class="rounded bg-bg-elevated px-1 py-0.5 font-mono text-2xs text-text-muted">▶ Run</kbd>
+          or
+          <kbd class="rounded bg-bg-elevated px-1 py-0.5 font-mono text-2xs text-text-muted">Ctrl+Enter</kbd>
+          to execute
+        </p>
       </div>
 
       <!-- Output content -->
-      <div v-else class="p-4 font-mono text-sm space-y-3 animate-fade-in">
+      <div v-else class="flex flex-col h-full">
 
-        <!-- stdout -->
-        <div v-if="hasStdout">
-          <pre class="whitespace-pre-wrap break-words text-text-primary leading-relaxed">{{ result!.stdout }}</pre>
-        </div>
+        <!-- stdout (formatted) -->
+        <div
+          v-if="formatted && formatted.type !== 'empty'"
+          class="flex-1 overflow-auto p-4 select-text"
+          v-html="formatted.html"
+        />
 
-        <!-- stderr / PHP error -->
+        <!-- Error block -->
         <div
           v-if="phpError"
-          class="rounded border border-error/20 bg-error/5 p-3 space-y-1.5"
+          class="mx-4 mb-4 rounded border border-error/25 bg-error/5 p-3 space-y-2 select-text"
         >
-          <!-- Error type badge -->
           <div class="flex items-center gap-2">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" class="text-error shrink-0">
               <path d="M6 1L11 10H1L6 1z" />
               <path d="M6 5v2.5M6 9h.01" stroke="white" stroke-width="1.2" stroke-linecap="round" fill="none" />
             </svg>
-            <span class="text-xs font-medium text-error">{{ phpError.type }}</span>
+            <span class="text-xs font-semibold text-error font-mono">{{ phpError.errorClass }}</span>
           </div>
 
-          <!-- Error message -->
           <p class="text-xs text-error/90 leading-relaxed">{{ phpError.message }}</p>
 
-          <!-- File + line info -->
           <div v-if="phpError.file" class="flex items-center gap-1.5 text-2xs text-text-muted">
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2">
               <rect x="1" y="1" width="8" height="8" rx="1" />
               <path d="M3 4h4M3 6h2" stroke-linecap="round" />
             </svg>
-            <code class="text-text-secondary">{{ phpError.file }}</code>
-            <span v-if="phpError.line" class="text-text-disabled">line {{ phpError.line }}</span>
+            <code class="text-text-secondary truncate" :title="phpError.file">{{ phpError.file }}</code>
+            <span v-if="phpError.line" class="shrink-0 text-text-disabled">line {{ phpError.line }}</span>
+          </div>
+
+          <!-- Stack trace (collapsible) -->
+          <div v-if="phpError.stackTrace">
+            <button
+              class="flex items-center gap-1 text-2xs text-text-disabled hover:text-text-muted transition-colors"
+              @click="stackExpanded = !stackExpanded"
+            >
+              <svg
+                width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5"
+                :class="stackExpanded ? 'rotate-90' : ''"
+                class="transition-transform"
+              >
+                <path d="M2 1l4 3-4 3" />
+              </svg>
+              Stack trace
+            </button>
+            <pre
+              v-if="stackExpanded"
+              class="mt-2 whitespace-pre-wrap break-words text-2xs text-text-disabled leading-relaxed"
+            >{{ phpError.stackTrace }}</pre>
           </div>
         </div>
 
-        <!-- Raw stderr fallback (when no PHP error pattern matched) -->
+        <!-- Raw stderr fallback (when no error pattern matched) -->
         <div
-          v-else-if="result?.stderr && !hasStdout"
-          class="rounded border border-error/20 bg-error/5 p-3"
+          v-else-if="result?.stderr && (!formatted || formatted.type === 'empty')"
+          class="mx-4 mb-4 rounded border border-error/25 bg-error/5 p-3"
         >
-          <pre class="whitespace-pre-wrap break-words text-xs text-error/90">{{ result.stderr }}</pre>
+          <pre class="whitespace-pre-wrap break-words text-xs text-error/90 select-text">{{ result.stderr }}</pre>
         </div>
 
-        <!-- Execution metrics bar -->
+        <!-- Metrics bar -->
         <div
-          class="flex items-center gap-3 border-t border-border-subtle pt-2 text-2xs text-text-disabled"
+          v-if="result"
+          class="shrink-0 flex items-center gap-2 border-t border-border-subtle px-4 py-1.5 text-2xs text-text-disabled font-mono"
         >
-          <span :class="hasError ? 'text-error' : 'text-success'">
-            exit {{ result!.exitCode }}
-          </span>
+          <span :class="hasError ? 'text-error' : 'text-success'">exit {{ result.exitCode }}</span>
           <span>·</span>
-          <span>{{ result!.executionTimeMs }}ms</span>
-          <span v-if="formattedMemory">·</span>
-          <span v-if="formattedMemory">{{ formattedMemory }}</span>
+          <span>{{ result.executionTimeMs }}ms</span>
+          <template v-if="formattedMemory">
+            <span>·</span>
+            <span>{{ formattedMemory }}</span>
+          </template>
         </div>
+
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* ── Output syntax highlighting ──────────────────────────────────────────── */
+:deep(.output-pre) {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--text-primary, #e4e4e7);
+}
+
+:deep(.hl-key)   { color: var(--color-info,    #38bdf8); }
+:deep(.hl-str)   { color: var(--color-success, #4ade80); }
+:deep(.hl-num)   { color: var(--color-warning, #fb923c); }
+:deep(.hl-bool)  { color: #a78bfa; }
+:deep(.hl-null)  { color: var(--text-muted,   #71717a); font-style: italic; }
+:deep(.hl-type)  { color: var(--color-info,   #38bdf8); font-weight: 600; }
+:deep(.hl-brace) { color: var(--text-muted,   #71717a); }
+
+/* ── Type badges ─────────────────────────────────────────────────────────── */
+.output-type-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 3px;
+  padding: 0 5px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.02em;
+}
+.badge-primitive { background: rgba(251,146,60,0.15); color: #fb923c; }
+.badge-string    { background: rgba(74,222,128,0.12); color: #4ade80; }
+.badge-array     { background: rgba(56,189,248,0.12); color: #38bdf8; }
+.badge-object    { background: rgba(167,139,250,0.12); color: #a78bfa; }
+.badge-bool      { background: rgba(167,139,250,0.12); color: #a78bfa; }
+.badge-null      { background: rgba(113,113,122,0.15); color: #71717a; }
+.badge-plain     { background: rgba(228,228,231,0.08); color: #a1a1aa; }
+</style>

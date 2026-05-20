@@ -71,7 +71,9 @@ const currentPhpVersion = computed(() => {
   return props.phpVersions.find((p) => p.path === props.selectedPhp)?.version ?? null
 })
 
-const isIndexing = computed(() => props.hasProject && !props.lspReady)
+// lspReady is now always true immediately (initialize runs in background).
+// Keep isIndexing for future use with $/progress notifications.
+const isIndexing = computed(() => false && props.hasProject && !props.lspReady)
 </script>
 
 <template>
