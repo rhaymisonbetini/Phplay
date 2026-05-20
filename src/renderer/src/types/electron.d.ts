@@ -48,6 +48,16 @@ declare global {
       detectFramework: (projectPath: string) => Promise<ProjectInfo>
       saveSession: (projectPath: string, sessions: unknown) => Promise<void>
       loadSession: (projectPath: string) => Promise<unknown>
+      listRecentProjects: () => Promise<RecentProject[]>
+      addRecentProject: (project: Omit<RecentProject, 'openedAt'>) => Promise<void>
+      removeRecentProject: (projectPath: string) => Promise<void>
     }
   }
+}
+
+export interface RecentProject {
+  path: string
+  name: string
+  framework: string
+  openedAt: number
 }

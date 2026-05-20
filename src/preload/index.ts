@@ -18,7 +18,15 @@ const api = {
     ipcRenderer.invoke('session:save', projectPath, sessions),
 
   loadSession: (projectPath: string): Promise<unknown> =>
-    ipcRenderer.invoke('session:load', projectPath)
+    ipcRenderer.invoke('session:load', projectPath),
+
+  listRecentProjects: (): Promise<unknown[]> => ipcRenderer.invoke('recent:list'),
+
+  addRecentProject: (project: { path: string; name: string; framework: string }): Promise<void> =>
+    ipcRenderer.invoke('recent:add', project),
+
+  removeRecentProject: (projectPath: string): Promise<void> =>
+    ipcRenderer.invoke('recent:remove', projectPath)
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)
