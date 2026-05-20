@@ -51,6 +51,17 @@ declare global {
       listRecentProjects: () => Promise<RecentProject[]>
       addRecentProject: (project: Omit<RecentProject, 'openedAt'>) => Promise<void>
       removeRecentProject: (projectPath: string) => Promise<void>
+      // Intelephense LSP
+      lspStart: (projectPath: string) => Promise<{ ok: boolean; error?: string }>
+      lspStop: () => Promise<void>
+      lspIsReady: () => Promise<boolean>
+      lspDidOpen: (uri: string, text: string, version: number) => Promise<void>
+      lspDidChange: (uri: string, text: string, version: number) => Promise<void>
+      lspDidClose: (uri: string) => Promise<void>
+      lspCompletion: (uri: string, line: number, character: number) => Promise<unknown>
+      lspHover: (uri: string, line: number, character: number) => Promise<unknown>
+      lspSignatureHelp: (uri: string, line: number, character: number) => Promise<unknown>
+      lspPathToUri: (path: string) => Promise<string>
     }
   }
 }

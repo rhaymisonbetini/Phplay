@@ -6,11 +6,13 @@ import { PhpDetector } from '../php/PhpDetector'
 import { LocalExecutor } from '../executor/LocalExecutor'
 import { FrameworkDetector } from '../project/FrameworkDetector'
 import { RecentProjects } from '../project/RecentProjects'
+import { IntelephenseLsp, pathToUri } from '../lsp/IntelephenseLsp'
 import type { ExecutionContext } from '../executor/types'
 
 const phpDetector = new PhpDetector()
 const executor = new LocalExecutor()
 const frameworkDetector = new FrameworkDetector()
+const lsp = new IntelephenseLsp()
 let recentProjects: RecentProjects
 
 function sessionFile(projectPath: string): string {
@@ -20,6 +22,7 @@ function sessionFile(projectPath: string): string {
 
 export function registerIpcHandlers(): void {
   recentProjects = new RecentProjects(app.getPath('userData'))
+
   ipcMain.handle('php:detect', async () => {
     return phpDetector.detect()
   })
@@ -69,4 +72,68 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('recent:remove', async (_event, projectPath: string) => {
     return recentProjects.remove(projectPath)
   })
+
+  // ── Intelephense LSP ──────────────────────────────────────────────────────
+
+  ipcMain.handle('lsp:start', async (_event, projectPath: string) => {
+    const storagePath = join(app.getPath('userData'), 'intelephense')
+    await mkdir(storagePath, { recursive: true })
+
+    lsp.stop() // Stop any previous session
+    lsp.start(storagePath)
+
+    try {
+      await lsp.initialize(projectPath, storagePath)
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, error: String(e) }
+    }
+  })
+
+  ipcMain.handle('lsp:stop', async () => {
+    lsp.stop()
+  })
+
+  ipcMain.handle('lsp:isReady', () => {
+    return lsp.isReady()
+  })
+
+  ipcMain.handle('lsp:didOpen', (_event, uri: string, text: string, version: number) => {
+    lsp.didOpen(uri, text, version)
+  })
+
+  ipcMain.handle('lsp:didChange', (_event, uri: string, text: string, version: number) => {
+    lsp.didChange(uri, text, version)
+  })
+
+  ipcMain.handle('lsp:didClose', (_event, uri: string) => {
+    lsp.didClose(uri)
+  })
+
+  ipcMain.handle('lsp:completion', async (_event, uri: string, line: number, character: number) => {
+    try {
+      return await lsp.completion(uri, line, character)
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle('lsp:hover', async (_event, uri: string, line: number, character: number) => {
+    try {
+      return await lsp.hover(uri, line, character)
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle('lsp:signatureHelp', async (_event, uri: string, line: number, character: number) => {
+    try {
+      return await lsp.signatureHelp(uri, line, character)
+    } catch {
+      return null
+    }
+  })
+
+  // Expose URI helper so renderer doesn't need path manipulation
+  ipcMain.handle('lsp:pathToUri', (_event, path: string) => pathToUri(path))
 }
