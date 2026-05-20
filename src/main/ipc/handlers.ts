@@ -6,11 +6,13 @@ import { PhpDetector } from '../php/PhpDetector'
 import { LocalExecutor } from '../executor/LocalExecutor'
 import { FrameworkDetector } from '../project/FrameworkDetector'
 import { RecentProjects } from '../project/RecentProjects'
+import { PhpClassScanner } from '../project/PhpClassScanner'
 import type { ExecutionContext } from '../executor/types'
 
 const phpDetector = new PhpDetector()
 const executor = new LocalExecutor()
 const frameworkDetector = new FrameworkDetector()
+const classScanner = new PhpClassScanner()
 let recentProjects: RecentProjects
 
 function sessionFile(projectPath: string): string {
@@ -68,5 +70,9 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('recent:remove', async (_event, projectPath: string) => {
     return recentProjects.remove(projectPath)
+  })
+
+  ipcMain.handle('project:scan-classes', async (_event, projectPath: string) => {
+    return classScanner.scan(projectPath)
   })
 }

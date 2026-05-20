@@ -6,6 +6,7 @@ const props = defineProps<{
   code: string
   isRunning: boolean
   canRun: boolean
+  projectPath?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -45,6 +46,7 @@ const runLabel = computed(() => (props.isRunning ? 'Running…' : '▶ Run'))
     <!-- Monaco Editor -->
     <PhplayEditor
       :model-value="code"
+      :project-path="projectPath"
       class="flex-1 overflow-hidden"
       @update:model-value="emit('update:code', $event)"
       @run="emit('run')"

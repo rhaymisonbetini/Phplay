@@ -182,6 +182,7 @@ useKeyboardShortcuts([
             :code="activeSession?.code ?? '<?php\n\n'"
             :is-running="activeSession?.isRunning ?? false"
             :can-run="!!selectedPhp && !!activeSession"
+            :project-path="projectStore.currentProject?.path ?? null"
             @update:code="sessionStore.setCode(sessionStore.activeSessionId, $event)"
             @run="runCode"
           />

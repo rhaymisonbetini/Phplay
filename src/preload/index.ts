@@ -26,7 +26,10 @@ const api = {
     ipcRenderer.invoke('recent:add', project),
 
   removeRecentProject: (projectPath: string): Promise<void> =>
-    ipcRenderer.invoke('recent:remove', projectPath)
+    ipcRenderer.invoke('recent:remove', projectPath),
+
+  scanProjectClasses: (projectPath: string): Promise<{ classes: string[]; functions: string[] }> =>
+    ipcRenderer.invoke('project:scan-classes', projectPath)
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

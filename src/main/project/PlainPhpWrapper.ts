@@ -1,7 +1,4 @@
-import { join } from 'path'
-
-// PHP helpers injected into every execution context.
-// Functions are guarded so they don't collide with Laravel's own dump/dd.
+// PHP helpers injected for plain PHP execution (no framework).
 const PHP_HELPERS = `
 if (!function_exists('d')) {
     function d(...$__args) {
@@ -22,29 +19,18 @@ if (!function_exists('phplay_json')) {
 `
 
 /**
- * Generates a PHP wrapper that boots a Laravel application and executes
- * the user's snippet inside the bootstrapped context.
- *
- * PHP requires `use` declarations to appear at file top level — they cannot
- * be inside try/catch blocks. This class extracts them from the user's snippet
- * and hoists them before the bootstrap require calls.
+ * Wraps plain PHP code (no framework) in a try/catch block with:
+ * - PHP helpers (d, dd, phplay_json)
+ * - Output buffering for clean stdout/stderr separation
+ * - Structured exception output to STDERR
  */
-export class LaravelBootstrap {
-  generate(projectPath: string, userCode: string, bootstrapPath?: string): string {
-    const autoload = join(projectPath, 'vendor', 'autoload.php').replace(/\\/g, '/')
-    const bootstrap = (bootstrapPath ?? join(projectPath, 'bootstrap', 'app.php')).replace(
-      /\\/g,
-      '/'
-    )
-
-    // Strip opening PHP tag
+export class PlainPhpWrapper {
+  generate(userCode: string): string {
     let code = userCode.replace(/^<\?php\s*/i, '').trim()
 
-    // Extract declare() — must be the very first statement after <?php
     const { declares, rest: afterDeclares } = this.extractDeclares(code)
     code = afterDeclares
 
-    // Extract use statements — must be at file top level, cannot be inside try/catch
     const { useStatements, rest: snippet } = this.extractUseStatements(code)
 
     const declareBlock = declares.length > 0 ? declares.join('\n') + '\n\n' : ''
@@ -52,12 +38,6 @@ export class LaravelBootstrap {
 
     return `<?php
 ${declareBlock}${useBlock}
-require_once '${autoload}';
-
-$app = require_once '${bootstrap}';
-
-$kernel = $app->make(Illuminate\\Contracts\\Console\\Kernel::class);
-$kernel->bootstrap();
 ${PHP_HELPERS}
 ob_start();
 try {
@@ -73,10 +53,6 @@ echo $__output;
 `
   }
 
-  /**
-   * Extracts declare() statements (e.g. declare(strict_types=1)).
-   * Must appear before any other code in PHP, so we hoist them to the top.
-   */
   private extractDeclares(code: string): { declares: string[]; rest: string } {
     const declares: string[] = []
     const rest = code
@@ -88,28 +64,15 @@ echo $__output;
     return { declares, rest }
   }
 
-  /**
-   * Extracts `use` import statements from user code.
-   *
-   * Handles:
-   *   use App\Models\User;
-   *   use App\Models\User as U;
-   *   use function Illuminate\Support\Facades\DB;
-   *   use const App\Enums\Status;
-   *   use Illuminate\Support\Facades\{DB, Auth, Cache};   (single-line grouped)
-   */
   private extractUseStatements(code: string): { useStatements: string[]; rest: string } {
     const useStatements: string[] = []
-
-    // Match single-line use statements (covers 99% of real-world cases)
     const rest = code
       .replace(/^use\s+(function\s+|const\s+)?[\w\\,\s{}]+;/gm, (m) => {
         useStatements.push(m.trim())
         return ''
       })
-      .replace(/^\n{3,}/gm, '\n\n') // collapse excessive blank lines
+      .replace(/^\n{3,}/gm, '\n\n')
       .trim()
-
     return { useStatements, rest }
   }
 

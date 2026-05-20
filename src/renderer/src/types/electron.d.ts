@@ -51,6 +51,7 @@ declare global {
       listRecentProjects: () => Promise<RecentProject[]>
       addRecentProject: (project: Omit<RecentProject, 'openedAt'>) => Promise<void>
       removeRecentProject: (projectPath: string) => Promise<void>
+      scanProjectClasses: (projectPath: string) => Promise<{ classes: string[]; functions: string[] }>
     }
   }
 }

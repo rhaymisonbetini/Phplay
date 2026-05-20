@@ -5,9 +5,11 @@ import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
 import type { Executor, ExecutionContext, ExecutionResult } from './types'
 import { LaravelBootstrap } from '../project/LaravelBootstrap'
+import { PlainPhpWrapper } from '../project/PlainPhpWrapper'
 
 const DEFAULT_TIMEOUT_MS = 30_000
 const laravelBootstrap = new LaravelBootstrap()
+const plainWrapper = new PlainPhpWrapper()
 
 export class LocalExecutor implements Executor {
   async isAvailable(): Promise<boolean> {
@@ -17,11 +19,12 @@ export class LocalExecutor implements Executor {
   async execute(code: string, context: ExecutionContext): Promise<ExecutionResult> {
     const tmpFile = join(tmpdir(), `phplay-${randomUUID()}.php`)
 
-    // Wrap code in Laravel bootstrap when framework is laravel and vendor exists
-    const finalCode =
-      context.framework === 'laravel' && context.bootstrapPath
-        ? laravelBootstrap.generate(context.projectPath, code, context.bootstrapPath)
-        : code
+    let finalCode: string
+    if (context.framework === 'laravel' && context.bootstrapPath) {
+      finalCode = laravelBootstrap.generate(context.projectPath, code, context.bootstrapPath)
+    } else {
+      finalCode = plainWrapper.generate(code)
+    }
 
     try {
       await writeFile(tmpFile, finalCode, 'utf-8')
