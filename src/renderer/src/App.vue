@@ -8,6 +8,7 @@ import { useSnippetPersistence } from './composables/useSnippetPersistence'
 import AppTitleBar from './components/AppTitleBar.vue'
 import SessionTabBar from './components/SessionTabBar.vue'
 import SidebarRail from './components/SidebarRail.vue'
+import SidebarPanel from './components/SidebarPanel.vue'
 import SplitPane from './components/SplitPane.vue'
 import EditorPanel from './components/EditorPanel.vue'
 import OutputPanel from './components/OutputPanel.vue'
@@ -24,6 +25,8 @@ type ToastState =
   | { type: 'not-php'; path: string }
   | null
 
+type SidebarPanelType = 'explorer' | 'history' | 'snippets'
+
 const sessionStore = useSessionStore()
 const projectStore = useProjectStore()
 const { sessions } = storeToRefs(sessionStore)
@@ -35,20 +38,25 @@ const toastState = ref<ToastState>(null)
 const lastMetrics = ref<{ timeMs: number; memKb: number } | null>(null)
 const recentProjects = ref<RecentProject[]>([])
 const lspReady = ref(false)
+const activeSidebarPanel = ref<SidebarPanelType | null>(null)
 
 const activeSession = computed(() => sessionStore.activeSession)
 const currentPath = computed(() => projectStore.currentProject?.path ?? null)
+const currentName = computed(() => projectStore.currentProject?.name ?? null)
 
 const { isSaved, restore } = useSnippetPersistence(sessions, currentPath)
 
 onMounted(async () => {
+  // Listen for File > Open Project from Electron menu
+  window.electronAPI.onMenuOpenProject(() => openProject())
+
   try {
     phpVersions.value = await window.electronAPI.detectPhp()
     if (phpVersions.value.length > 0) {
       selectedPhp.value = phpVersions.value[0].path
     }
   } catch {
-    // PHP not found — user will configure manually
+    // PHP not found
   }
 
   recentProjects.value = (await window.electronAPI.listRecentProjects()) as RecentProject[]
@@ -87,16 +95,17 @@ async function runCode(): Promise<void> {
 async function openProject(): Promise<void> {
   const path = await window.electronAPI.openProjectDialog()
   if (!path) return
+  await loadProject(path)
+}
 
+async function loadProject(path: string): Promise<void> {
   toastState.value = { type: 'detecting' }
 
   try {
     const project = await projectStore.openProject(path, selectedPhp.value)
 
-    // Restore saved snippets for this project
     await restore(path)
 
-    // Record in recents
     await window.electronAPI.addRecentProject({
       path: project.path,
       name: project.name,
@@ -104,7 +113,7 @@ async function openProject(): Promise<void> {
     })
     recentProjects.value = (await window.electronAPI.listRecentProjects()) as RecentProject[]
 
-    // Start LSP for this project (non-blocking — indexing can take a moment)
+    // Start LSP non-blocking — indexing can take a moment
     lspReady.value = false
     window.electronAPI.lspStart(path).then((result) => {
       lspReady.value = result.ok
@@ -128,21 +137,7 @@ function clearOutput(): void {
 }
 
 async function openRecentProject(path: string): Promise<void> {
-  toastState.value = { type: 'detecting' }
-  try {
-    const project = await projectStore.openProject(path, selectedPhp.value)
-    await restore(path)
-    lspReady.value = false
-    window.electronAPI.lspStart(path).then((result) => {
-      lspReady.value = result.ok
-    })
-    toastState.value = { type: 'detected', framework: project.framework, projectName: project.name }
-  } catch {
-    toastState.value = { type: 'not-php', path }
-    await window.electronAPI.removeRecentProject(path)
-    recentProjects.value = recentProjects.value.filter((p) => p.path !== path)
-  }
-  setTimeout(() => { toastState.value = null }, 3500)
+  await loadProject(path)
 }
 
 async function removeRecentProject(path: string): Promise<void> {
@@ -158,6 +153,10 @@ function applyCustomPhp(path: string): void {
   projectStore.updatePhpBinary(path)
 }
 
+function onSidebarPanelChange(panel: SidebarPanelType | null): void {
+  activeSidebarPanel.value = panel
+}
+
 useKeyboardShortcuts([
   { key: 'Enter', ctrl: true, handler: runCode },
   { key: 'c', ctrl: true, shift: true, handler: clearOutput },
@@ -170,17 +169,35 @@ useKeyboardShortcuts([
 <template>
   <div class="flex h-screen flex-col overflow-hidden bg-bg-app text-text-primary select-none">
     <AppTitleBar
-      :project-name="projectStore.projectName ?? undefined"
+      :project-name="currentName ?? undefined"
       :session-name="activeSession?.name"
     />
 
     <SessionTabBar />
 
     <div class="flex flex-1 overflow-hidden">
-      <SidebarRail @open-project="openProject" @open-settings="() => {}" />
+      <SidebarRail
+        @panel-change="onSidebarPanelChange"
+        @open-settings="() => {}"
+      />
 
+      <!-- Sidebar panel (Explorer / History / Snippets) -->
+      <SidebarPanel
+        v-if="activeSidebarPanel"
+        :panel="activeSidebarPanel"
+        :current-project-path="currentPath"
+        :current-project-name="currentName"
+        :current-framework="projectStore.framework"
+        :recent-projects="recentProjects"
+        @open-project="openProject"
+        @open-recent="openRecentProject"
+        @remove-recent="removeRecentProject"
+        @close="activeSidebarPanel = null"
+      />
+
+      <!-- Welcome screen: always show when no project is open -->
       <WelcomeScreen
-        v-if="!projectStore.hasProject && phpVersions.length === 0"
+        v-if="!projectStore.hasProject"
         :recent-projects="recentProjects"
         @open-project="openProject"
         @open-recent="openRecentProject"
@@ -217,7 +234,10 @@ useKeyboardShortcuts([
       :execution-time-ms="lastMetrics?.timeMs ?? null"
       :memory-used-kb="lastMetrics?.memKb ?? null"
       :project-path="projectStore.currentProject?.path"
+      :project-name="currentName ?? undefined"
+      :has-project="projectStore.hasProject"
       :is-saved="isSaved"
+      :lsp-ready="lspReady"
       @open-project="openProject"
       @select-php="selectedPhp = $event; projectStore.updatePhpBinary($event)"
       @open-php-config="showPhpConfig = true"
