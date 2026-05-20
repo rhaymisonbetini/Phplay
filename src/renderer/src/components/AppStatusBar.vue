@@ -29,6 +29,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   'open-project': []
   'select-php': [path: string]
+  'open-php-config': []
 }>()
 
 const frameworkLabel = computed(() => {
@@ -94,10 +95,14 @@ const currentPhpVersion = computed(() => {
 
       <!-- PHP version selector -->
       <div class="flex items-center gap-1">
-        <span v-if="currentPhpVersion" class="status-item">
-          PHP {{ currentPhpVersion }}
-        </span>
-        <span v-else class="text-2xs text-error">No PHP</span>
+        <button
+          class="status-item-btn"
+          :title="currentPhpVersion ? `PHP path: ${selectedPhp}` : 'Click to configure PHP'"
+          @click="emit('open-php-config')"
+        >
+          <span v-if="currentPhpVersion" class="text-2xs">PHP {{ currentPhpVersion }}</span>
+          <span v-else class="text-2xs text-error">No PHP — click to configure</span>
+        </button>
 
         <!-- Multi-version dropdown -->
         <select
