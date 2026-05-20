@@ -1,5 +1,3 @@
-import { join } from 'path'
-
 const PHP_HELPERS = `
 if (!function_exists('d')) {
     function d(...$__args) {
@@ -19,14 +17,8 @@ if (!function_exists('phplay_json')) {
 }
 `
 
-export class LaravelBootstrap {
-  generate(projectPath: string, userCode: string, bootstrapPath?: string): string {
-    const autoload = join(projectPath, 'vendor', 'autoload.php').replace(/\\/g, '/')
-    const bootstrap = (bootstrapPath ?? join(projectPath, 'bootstrap', 'app.php')).replace(
-      /\\/g,
-      '/'
-    )
-
+export class PlainPhpWrapper {
+  generate(userCode: string): string {
     const stripped = userCode.replace(/^<\?php\s*/i, '').trim()
     const { declares, rest: afterDeclares } = this.extractDeclares(stripped)
     const { useStatements, rest: snippet } = this.extractUseStatements(afterDeclares)
@@ -35,12 +27,7 @@ export class LaravelBootstrap {
     const useBlock = useStatements.length ? useStatements.join('\n') + '\n\n' : ''
 
     return `<?php
-${declareBlock}${useBlock}require_once '${autoload}';
-
-$__app = require_once '${bootstrap}';
-$__kernel = $__app->make(Illuminate\\Contracts\\Console\\Kernel::class);
-$__kernel->bootstrap();
-${PHP_HELPERS}
+${declareBlock}${useBlock}${PHP_HELPERS}
 ob_start();
 try {
 ${this.indent(snippet)}
@@ -58,11 +45,7 @@ echo $__output;
 
   private extractDeclares(code: string): { declares: string[]; rest: string } {
     const declares: string[] = []
-    let rest = code
-    const re = /^declare\s*\([^)]*\)\s*;/gm
-    let match: RegExpExecArray | null
-    // Collect all declare() at start of (non-whitespace) lines
-    const lines = rest.split('\n')
+    const lines = code.split('\n')
     const kept: string[] = []
     for (const line of lines) {
       if (/^\s*declare\s*\(/.test(line)) {
@@ -71,26 +54,20 @@ echo $__output;
         kept.push(line)
       }
     }
-    rest = kept.join('\n').trim()
-    // suppress unused var warning
-    void re; void match
-    return { declares, rest }
+    return { declares, rest: kept.join('\n').trim() }
   }
 
   private extractUseStatements(code: string): { useStatements: string[]; rest: string } {
     const useStatements: string[] = []
     const lines = code.split('\n')
     const kept: string[] = []
-
     for (const line of lines) {
-      // Match: use Foo\Bar; | use function foo; | use const FOO; | use Foo\{Bar, Baz};
       if (/^\s*use\s+(function\s+|const\s+)?[\w\\]/.test(line)) {
         useStatements.push(line.trim())
       } else {
         kept.push(line)
       }
     }
-
     return { useStatements, rest: kept.join('\n').trim() }
   }
 

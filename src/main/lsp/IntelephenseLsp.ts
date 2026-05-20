@@ -209,7 +209,7 @@ export class IntelephenseLsp extends EventEmitter {
       textDocument: { uri },
       position: { line, character },
       context: { triggerKind: 1 }
-    })
+    }, 4_000)
   }
 
   hover(uri: string, line: number, character: number): Promise<unknown> {
@@ -217,7 +217,7 @@ export class IntelephenseLsp extends EventEmitter {
     return this.request('textDocument/hover', {
       textDocument: { uri },
       position: { line, character }
-    })
+    }, 4_000)
   }
 
   signatureHelp(uri: string, line: number, character: number): Promise<unknown> {
@@ -225,7 +225,7 @@ export class IntelephenseLsp extends EventEmitter {
     return this.request('textDocument/signatureHelp', {
       textDocument: { uri },
       position: { line, character }
-    })
+    }, 4_000)
   }
 }
 
