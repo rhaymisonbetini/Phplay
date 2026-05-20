@@ -5,6 +5,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design Tokens (CSS custom properties) ─────────────────────────────── */
+:root {
+  /* Background layers */
+  --bg-base: #0f0f10;
+  --bg-app: #18181b;
+  --bg-surface: #1e1e21;
+  --bg-elevated: #27272a;
+  --bg-overlay: #2d2d30;
+
+  /* Border */
+  --border-subtle: #2a2a2d;
+  --border-default: #3f3f46;
+  --border-strong: #52525b;
+
+  /* Text */
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --text-disabled: #52525b;
+
+  /* Accent */
+  --accent: #10b981;
+  --accent-hover: #059669;
+  --accent-active: #047857;
+
+  /* State */
+  --success: #22c55e;
+  --success-bg: #052e16;
+  --error: #f43f5e;
+  --error-bg: #2d0a14;
+  --warning: #f59e0b;
+  --warning-bg: #2d1a02;
+  --info: #0ea5e9;
+  --info-bg: #082032;
+
+  /* Layout */
+  --titlebar-height: 32px;
+  --tabbar-height: 32px;
+  --statusbar-height: 24px;
+  --sidebar-width: 44px;
+  --panel-header-height: 32px;
+}
+
+/* ── Base resets ───────────────────────────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -22,12 +66,113 @@ body,
 
 body {
   font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-  background-color: #18181b;
-  color: #f4f4f5;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Remove default Monaco editor border */
+/* ── Custom scrollbars ─────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ── Monaco Editor overrides ───────────────────────────────────────────── */
 .monaco-editor {
   border: none !important;
+}
+
+.monaco-editor .margin {
+  background-color: transparent !important;
+}
+
+.monaco-editor-background {
+  background-color: var(--bg-surface) !important;
+}
+
+/* ── Utility classes ───────────────────────────────────────────────────── */
+@layer utilities {
+  .drag-region {
+    -webkit-app-region: drag;
+  }
+
+  .no-drag {
+    -webkit-app-region: no-drag;
+  }
+
+  .panel-header {
+    @apply flex h-8 shrink-0 items-center border-b border-border bg-bg-elevated/50 px-3;
+    height: var(--panel-header-height);
+  }
+
+  .status-item {
+    @apply flex items-center gap-1.5 text-xs text-text-secondary transition-colors duration-fast;
+  }
+
+  .status-item-btn {
+    @apply status-item cursor-pointer rounded px-1.5 py-0.5 hover:bg-bg-elevated hover:text-text-primary;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-success/10 text-success;
+  }
+
+  .badge-error {
+    @apply badge bg-error/10 text-error;
+  }
+
+  .badge-warning {
+    @apply badge bg-warning/10 text-warning;
+  }
+
+  .badge-info {
+    @apply badge bg-info/10 text-info;
+  }
+
+  .btn-primary {
+    @apply rounded bg-accent px-3 py-1 text-xs font-medium text-bg-base transition-colors duration-fast hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-40 active:bg-accent-700;
+  }
+
+  .btn-ghost {
+    @apply rounded px-2 py-1 text-xs text-text-muted transition-colors duration-fast hover:bg-bg-elevated hover:text-text-primary;
+  }
+}
+
+/* ── Spinner animation ─────────────────────────────────────────────────── */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border-default);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
