@@ -142,7 +142,7 @@ export class IntelephenseLsp extends EventEmitter {
         clearCache: false,
         licenceKey: ''
       }
-    }, 30_000) // indexing can be slow on first run
+    }, 120_000) // large projects can take minutes to index on first run
 
     this.notify('initialized', {})
     this.ready = true

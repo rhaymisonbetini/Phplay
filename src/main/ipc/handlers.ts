@@ -79,15 +79,16 @@ export function registerIpcHandlers(): void {
     const storagePath = join(app.getPath('userData'), 'intelephense')
     await mkdir(storagePath, { recursive: true })
 
-    lsp.stop() // Stop any previous session
+    lsp.stop()
     lsp.start(storagePath)
 
-    try {
-      await lsp.initialize(projectPath, storagePath)
-      return { ok: true }
-    } catch (e) {
-      return { ok: false, error: String(e) }
-    }
+    // Initialize in background — indexing large projects can take minutes.
+    // The renderer doesn't need to wait; lsp.completion/hover/etc. return null
+    // internally until this.ready is true, so completions silently kick in
+    // once intelephense finishes without blocking the UI.
+    lsp.initialize(projectPath, storagePath).catch(() => undefined)
+
+    return { ok: true }
   })
 
   ipcMain.handle('lsp:stop', async () => {
