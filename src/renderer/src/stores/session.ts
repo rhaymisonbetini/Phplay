@@ -1,17 +1,18 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import type { ExecutionResult } from '../types/electron'
 
 export interface Session {
   id: string
   name: string
   code: string
-  output: string
+  output: ExecutionResult | null
   isRunning: boolean
 }
 
 export const useSessionStore = defineStore('session', () => {
   const sessions = ref<Session[]>([
-    { id: '1', name: 'Session 1', code: '<?php\n\n', output: '', isRunning: false }
+    { id: '1', name: 'Session 1', code: '<?php\n\n', output: null, isRunning: false }
   ])
   const activeSessionId = ref('1')
 
@@ -23,7 +24,7 @@ export const useSessionStore = defineStore('session', () => {
       id,
       name: `Session ${sessions.value.length + 1}`,
       code: '<?php\n\n',
-      output: '',
+      output: null,
       isRunning: false
     })
     activeSessionId.value = id
@@ -44,7 +45,7 @@ export const useSessionStore = defineStore('session', () => {
     if (session) session.code = code
   }
 
-  function setOutput(id: string, output: string): void {
+  function setOutput(id: string, output: ExecutionResult | null): void {
     const session = sessions.value.find((s) => s.id === id)
     if (session) session.output = output
   }

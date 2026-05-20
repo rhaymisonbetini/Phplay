@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as monaco from 'monaco-editor'
+import { phplayDarkTheme } from '../assets/monaco-theme'
 
-// Monaco workers are not configured in the base setup.
-// The editor works via Monarch tokenizers (main thread) without workers.
-// Full worker setup (IntelliSense, diagnostics) will be done in issue T-03.
+// Stub worker — real worker setup tracked in issue T-03 (Monaco workers + IntelliSense)
 window.MonacoEnvironment = {
   getWorker: (_workerId: string, _label: string): Worker => {
     const blob = new Blob(['self.onmessage=function(){}'], { type: 'text/javascript' })
@@ -35,10 +34,12 @@ let editor: monaco.editor.IStandaloneCodeEditor | null = null
 onMounted(() => {
   if (!editorContainer.value) return
 
+  monaco.editor.defineTheme('phplay-dark', phplayDarkTheme)
+
   editor = monaco.editor.create(editorContainer.value, {
     value: props.modelValue,
     language: props.language,
-    theme: 'vs-dark',
+    theme: 'phplay-dark',
     readOnly: props.readOnly,
     minimap: { enabled: false },
     fontSize: 14,
