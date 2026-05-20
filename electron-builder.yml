@@ -1,9 +1,10 @@
 appId: com.phplay.app
 productName: Phplay
-copyright: Copyright © 2024 rhaymisonbetini
+copyright: Copyright © 2025 rhaymisonbetini
 
 directories:
   buildResources: resources
+  output: dist
 
 files:
   - '!**/.vscode/*'
@@ -13,15 +14,46 @@ files:
   - '!{.env,.env.*,.npmrc}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   - '!documento-tecnico-produto-phplay.md'
+  - '!**/__tests__/**'
+
+asar: true
 
 linux:
   executableName: phplay
+  desktop:
+    Name: Phplay
+    Comment: Desktop PHP REPL — execute PHP in the context of your real projects
+    Categories: Development;IDE;
+    Keywords: PHP;REPL;Laravel;Developer;
   target:
     - target: AppImage
+      arch:
+        - x64
     - target: deb
-  category: Development
+      arch:
+        - x64
 
 deb:
   packageCategory: devel
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+    - target: zip
+
+win:
+  target:
+    - target: nsis
 
 npmRebuild: false
