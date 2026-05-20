@@ -53,7 +53,12 @@ const api = {
   lspSignatureHelp: (uri: string, line: number, character: number): Promise<unknown> =>
     ipcRenderer.invoke('lsp:signatureHelp', uri, line, character),
 
-  lspPathToUri: (path: string): Promise<string> => ipcRenderer.invoke('lsp:pathToUri', path)
+  lspPathToUri: (path: string): Promise<string> => ipcRenderer.invoke('lsp:pathToUri', path),
+
+  // Menu events from main process
+  onMenuOpenProject: (cb: () => void): void => {
+    ipcRenderer.on('menu:open-project', cb)
+  }
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

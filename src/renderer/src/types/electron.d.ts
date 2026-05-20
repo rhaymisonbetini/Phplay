@@ -62,6 +62,7 @@ declare global {
       lspHover: (uri: string, line: number, character: number) => Promise<unknown>
       lspSignatureHelp: (uri: string, line: number, character: number) => Promise<unknown>
       lspPathToUri: (path: string) => Promise<string>
+      onMenuOpenProject: (cb: () => void) => void
     }
   }
 }

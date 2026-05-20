@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, Menu } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc/handlers'
@@ -37,6 +37,49 @@ function createWindow(): BrowserWindow {
   return win
 }
 
+function buildMenu(): void {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Open Project…',
+          accelerator: 'CmdOrCtrl+O',
+          click: () => {
+            BrowserWindow.getFocusedWindow()?.webContents.send('menu:open-project')
+          }
+        },
+        { type: 'separator' },
+        { role: 'quit', label: 'Quit Phplay' }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    }
+  ]
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.phplay.app')
 
@@ -45,6 +88,7 @@ app.whenReady().then(() => {
   })
 
   registerIpcHandlers()
+  buildMenu()
   createWindow()
 
   app.on('activate', () => {
