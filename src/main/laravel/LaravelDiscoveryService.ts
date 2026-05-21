@@ -2,6 +2,7 @@ import { readFile, writeFile, stat } from 'fs/promises'
 import { join } from 'path'
 import { ComposerMetadataReader } from './ComposerMetadataReader'
 import { ArtisanRunner } from './ArtisanRunner'
+import { LaravelStubGenerator } from './LaravelStubGenerator'
 import type { ComposerMetadata } from './ComposerMetadataReader'
 
 interface RouteEntry {
@@ -28,10 +29,12 @@ const CACHE_FILE = 'laravel-metadata.json'
 
 export class LaravelDiscoveryService {
   private readonly composerReader = new ComposerMetadataReader()
+  private readonly stubGenerator = new LaravelStubGenerator()
 
   async discover(
     projectPath: string,
     storagePath: string,
+    generatedPath: string,
     phpBinary: string
   ): Promise<LaravelMetadata> {
     const cacheFile = join(storagePath, CACHE_FILE)
@@ -45,6 +48,7 @@ export class LaravelDiscoveryService {
 
     const meta = await this.run(projectPath, phpBinary)
     await writeFile(cacheFile, JSON.stringify(meta), 'utf-8').catch(() => {})
+    await this.stubGenerator.generate(generatedPath, meta).catch(() => {})
     return meta
   }
 
