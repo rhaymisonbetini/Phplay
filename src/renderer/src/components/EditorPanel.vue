@@ -8,6 +8,8 @@ const props = defineProps<{
   canRun: boolean
   projectPath?: string | null
   lspReady?: boolean
+  framework?: string
+  selectedPhp?: string
 }>()
 
 const emit = defineEmits<{
@@ -49,6 +51,8 @@ const runLabel = computed(() => (props.isRunning ? 'Running…' : '▶ Run'))
       :model-value="code"
       :project-path="projectPath"
       :lsp-ready="lspReady ?? false"
+      :framework="framework"
+      :selected-php="selectedPhp"
       class="flex-1 overflow-hidden"
       @update:model-value="emit('update:code', $event)"
       @run="emit('run')"
