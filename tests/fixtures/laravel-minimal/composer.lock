@@ -1,0 +1,6 @@
+{
+  "packages": [
+    { "name": "laravel/framework", "version": "v11.0.0" },
+    { "name": "symfony/console", "version": "v7.0.0" }
+  ]
+}
