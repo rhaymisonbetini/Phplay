@@ -86,7 +86,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('laravel:discover', async (_event, projectPath: string, phpBinary: string) => {
     try {
       const ws = await workspaceService.ensure(projectPath)
-      const meta = await laravelDiscovery.discover(projectPath, ws.storagePath, phpBinary)
+      const meta = await laravelDiscovery.discover(projectPath, ws.storagePath, ws.generatedPath, phpBinary)
       return ok(meta)
     } catch (e) {
       return fail('DISCOVERY_ERROR', (e as Error).message)
