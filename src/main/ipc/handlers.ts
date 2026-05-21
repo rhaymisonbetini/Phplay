@@ -140,6 +140,7 @@ export function registerIpcHandlers(): void {
     lsp.stop()
 
     const onStateChanged = (payload: unknown) => {
+      lspLogger?.info(`LSP stateChanged: ${JSON.stringify(payload)}`)
       if (!event.sender.isDestroyed()) {
         event.sender.send('lsp:stateChanged', payload)
       }
