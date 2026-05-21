@@ -51,6 +51,7 @@ declare global {
       listRecentProjects: () => Promise<RecentProject[]>
       addRecentProject: (project: Omit<RecentProject, 'openedAt'>) => Promise<void>
       removeRecentProject: (projectPath: string) => Promise<void>
+      laravelDiscover: (projectPath: string, phpBinary: string) => Promise<unknown>
       // Intelephense LSP
       lspStart: (projectPath: string) => Promise<{ ok: boolean; error?: string }>
       lspStop: () => Promise<void>

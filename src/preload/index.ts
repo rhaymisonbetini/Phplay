@@ -29,6 +29,9 @@ const api = {
     ipcRenderer.invoke('recent:remove', projectPath),
 
   // ── Intelephense LSP ────────────────────────────────────────────────────────
+  laravelDiscover: (projectPath: string, phpBinary: string): Promise<unknown> =>
+    ipcRenderer.invoke('laravel:discover', projectPath, phpBinary),
+
   lspStart: (projectPath: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('lsp:start', projectPath),
 
