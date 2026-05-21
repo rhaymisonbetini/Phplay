@@ -2,12 +2,10 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as monaco from 'monaco-editor'
 import { phplayDarkTheme } from '../assets/monaco-theme'
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 
 window.MonacoEnvironment = {
-  getWorker: (_workerId: string, _label: string): Worker => {
-    const blob = new Blob(['self.onmessage=function(){}'], { type: 'text/javascript' })
-    return new Worker(URL.createObjectURL(blob))
-  }
+  getWorker: (_workerId: string, _label: string): Worker => new EditorWorker()
 }
 
 const props = withDefaults(
