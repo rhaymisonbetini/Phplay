@@ -41,17 +41,18 @@ export class IntelephenseLsp extends EventEmitter {
 
     this.setState('starting')
     const bin = require.resolve('intelephense/lib/intelephense.js')
-    this.proc = spawn(process.execPath, [bin, '--stdio'], {
+    const proc = spawn(process.execPath, [bin, '--stdio'], {
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env }
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }
     })
+    this.proc = proc
 
-    this.proc.stdout!.on('data', (chunk: Buffer) => {
+    proc.stdout!.on('data', (chunk: Buffer) => {
       this.buf += chunk.toString('utf8')
       this.drain()
     })
 
-    this.proc.stderr!.on('data', (chunk: Buffer) => {
+    proc.stderr!.on('data', (chunk: Buffer) => {
       const line = chunk.toString().trim()
       if (line) {
         this.emit('log', line)
@@ -59,7 +60,9 @@ export class IntelephenseLsp extends EventEmitter {
       }
     })
 
-    this.proc.on('exit', (code) => {
+    proc.on('exit', (code) => {
+      // Ignore stale exit events from processes that were intentionally stopped
+      if (this.proc !== proc) return
       const wasReady = this._state === 'ready'
       this.proc = null
       for (const [, req] of this.pending) {
@@ -67,6 +70,7 @@ export class IntelephenseLsp extends EventEmitter {
         req.reject(new Error('LSP process exited'))
       }
       this.pending.clear()
+      if (this._state === 'stopped') return
       if (!wasReady || code !== 0) {
         this.setState('error', `Process exited with code ${code ?? 'unknown'}`)
       } else {
