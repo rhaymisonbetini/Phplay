@@ -75,18 +75,29 @@ export function registerIpcHandlers(): void {
 
   // ── Intelephense LSP ──────────────────────────────────────────────────────
 
-  ipcMain.handle('lsp:start', async (_event, projectPath: string) => {
+  ipcMain.handle('lsp:start', async (event, projectPath: string) => {
     const storagePath = join(app.getPath('userData'), 'intelephense')
     await mkdir(storagePath, { recursive: true })
 
     lsp.stop()
+
+    // Forward state changes to the renderer that initiated lsp:start
+    const onStateChanged = (payload: unknown) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('lsp:stateChanged', payload)
+      }
+    }
+    lsp.removeAllListeners('stateChanged')
+    lsp.on('stateChanged', onStateChanged)
+
     lsp.start(storagePath)
 
     // Initialize in background — indexing large projects can take minutes.
-    // The renderer doesn't need to wait; lsp.completion/hover/etc. return null
-    // internally until this.ready is true, so completions silently kick in
-    // once intelephense finishes without blocking the UI.
-    lsp.initialize(projectPath, storagePath).catch(() => undefined)
+    lsp.initialize(projectPath, storagePath).catch((err: Error) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('lsp:stateChanged', { state: 'error', message: err.message })
+      }
+    })
 
     return { ok: true }
   })
@@ -97,6 +108,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('lsp:isReady', () => {
     return lsp.isReady()
+  })
+
+  ipcMain.handle('lsp:getState', () => {
+    return lsp.getState()
   })
 
   ipcMain.handle('lsp:didOpen', (_event, uri: string, text: string, version: number) => {

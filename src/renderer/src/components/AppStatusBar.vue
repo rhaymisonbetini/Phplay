@@ -16,6 +16,7 @@ const props = withDefaults(
     selectedPhp?: string
     isSaved?: boolean
     lspReady?: boolean
+    lspState?: string
     hasProject?: boolean
   }>(),
   {
@@ -30,6 +31,7 @@ const props = withDefaults(
     selectedPhp: '',
     isSaved: true,
     lspReady: true,
+    lspState: 'stopped',
     hasProject: false
   }
 )
@@ -38,6 +40,7 @@ const emit = defineEmits<{
   'open-project': []
   'select-php': [path: string]
   'open-php-config': []
+  'restart-lsp': []
 }>()
 
 const frameworkLabel = computed(() => {
@@ -71,9 +74,8 @@ const currentPhpVersion = computed(() => {
   return props.phpVersions.find((p) => p.path === props.selectedPhp)?.version ?? null
 })
 
-// lspReady is now always true immediately (initialize runs in background).
-// Keep isIndexing for future use with $/progress notifications.
-const isIndexing = computed(() => false && props.hasProject && !props.lspReady)
+const isIndexing = computed(() => props.hasProject && (props.lspState === 'initializing' || props.lspState === 'starting'))
+const isLspError = computed(() => props.lspState === 'error')
 </script>
 
 <template>
@@ -153,7 +155,21 @@ const isIndexing = computed(() => false && props.hasProject && !props.lspReady)
         <span class="text-2xs">Indexando…</span>
       </span>
 
-      <span v-if="isIndexing && projectPath" class="text-border-strong">·</span>
+      <!-- LSP error indicator -->
+      <span
+        v-if="isLspError"
+        class="status-item gap-1 text-error cursor-pointer"
+        title="PHP Intelligence com erro — clique para reiniciar"
+        @click="$emit('restart-lsp')"
+      >
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+          <path d="M4 0L7.5 7H0.5L4 0z" />
+          <path d="M4 3v1.5M4 5.5h.01" stroke="white" stroke-width="1" fill="none" />
+        </svg>
+        <span class="text-2xs">LSP error</span>
+      </span>
+
+      <span v-if="(isIndexing || isLspError) && projectPath" class="text-border-strong">·</span>
 
       <!-- Saved indicator -->
       <span
