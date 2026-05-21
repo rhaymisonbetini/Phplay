@@ -9,6 +9,17 @@ const api = {
   executePhp: (code: string, context: ExecutionContext): Promise<ExecutionResult> =>
     ipcRenderer.invoke('php:execute', code, context),
 
+  cancelExecution: (executionId: string): Promise<boolean> =>
+    ipcRenderer.invoke('execution:cancel', executionId),
+
+  onExecutionOutput: (cb: (payload: { executionId: string; chunk: string; stream: 'stdout' | 'stderr' }) => void): void => {
+    ipcRenderer.on('execution:output', (_event, payload) => cb(payload))
+  },
+
+  onExecutionStarted: (cb: (payload: { executionId: string }) => void): void => {
+    ipcRenderer.on('execution:started', (_event, payload) => cb(payload))
+  },
+
   openProjectDialog: (): Promise<string | null> => ipcRenderer.invoke('project:open-dialog'),
 
   detectFramework: (projectPath: string): Promise<ProjectInfo> =>
