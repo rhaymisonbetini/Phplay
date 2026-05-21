@@ -41,6 +41,7 @@ const lspReady = ref(false)
 const lspState = ref<string>('stopped')
 const activeSidebarPanel = ref<SidebarPanelType | null>(null)
 const activeExecutionId = ref<string | null>(null)
+const liveOutput = ref<string>('')
 
 const activeSession = computed(() => sessionStore.activeSession)
 const currentPath = computed(() => projectStore.currentProject?.path ?? null)
@@ -61,6 +62,12 @@ onMounted(async () => {
   // Track active execution ID for cancel support
   window.electronAPI.onExecutionStarted(({ executionId }) => {
     activeExecutionId.value = executionId
+    liveOutput.value = ''
+  })
+
+  // Accumulate streaming output chunks
+  window.electronAPI.onExecutionOutput(({ chunk, stream }) => {
+    if (stream === 'stdout') liveOutput.value += chunk
   })
 
   try {
@@ -252,6 +259,7 @@ useKeyboardShortcuts([
           <OutputPanel
             :result="activeSession?.output ?? null"
             :is-running="activeSession?.isRunning ?? false"
+            :live-output="liveOutput"
             @clear="clearOutput"
           />
         </template>

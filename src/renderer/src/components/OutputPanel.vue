@@ -6,6 +6,7 @@ import { formatOutput, parsePhpError } from '../composables/useOutputFormatter'
 const props = defineProps<{
   result: ExecutionResult | null
   isRunning: boolean
+  liveOutput?: string
 }>()
 
 const emit = defineEmits<{ clear: [] }>()
@@ -36,13 +37,19 @@ const formattedMemory = computed(() => {
   return kb >= 1024 ? `${(kb / 1024).toFixed(1)}MB` : `${kb}KB`
 })
 
-watch(() => props.result, async () => {
-  stackExpanded.value = false
+async function scrollToBottom(): Promise<void> {
   await nextTick()
   if (outputContainer.value) {
     outputContainer.value.scrollTop = outputContainer.value.scrollHeight
   }
+}
+
+watch(() => props.result, async () => {
+  stackExpanded.value = false
+  await scrollToBottom()
 })
+
+watch(() => props.liveOutput, scrollToBottom)
 
 async function copyOutput(): Promise<void> {
   const text = props.result?.stdout ?? ''
@@ -107,10 +114,17 @@ async function copyOutput(): Promise<void> {
     <!-- Content -->
     <div ref="outputContainer" class="flex-1 overflow-auto">
 
-      <!-- Running -->
-      <div v-if="isRunning" class="flex h-full flex-col items-center justify-center gap-3 text-text-muted">
-        <div class="spinner" style="width: 20px; height: 20px; border-width: 2px" />
-        <span class="text-xs">Running…</span>
+      <!-- Running with live output -->
+      <div v-if="isRunning">
+        <div
+          v-if="liveOutput"
+          ref="outputContainer"
+          class="p-4 font-mono text-xs text-text-primary select-text whitespace-pre-wrap break-all"
+        >{{ liveOutput }}<span class="inline-block w-1.5 h-3 bg-text-muted animate-pulse ml-0.5 align-middle" /></div>
+        <div v-else class="flex h-full flex-col items-center justify-center gap-3 text-text-muted pt-20">
+          <div class="spinner" style="width: 20px; height: 20px; border-width: 2px" />
+          <span class="text-xs">Running…</span>
+        </div>
       </div>
 
       <!-- Empty state -->
