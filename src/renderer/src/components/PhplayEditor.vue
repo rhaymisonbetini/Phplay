@@ -115,10 +115,10 @@ function registerLspProviders(uri: string): void {
         value: {
           signatures: sh.signatures.map((sig) => ({
             label: sig.label,
-            documentation: sig.documentation ? { value: sig.documentation.value ?? sig.documentation } : undefined,
+            documentation: sig.documentation ? { value: typeof sig.documentation === 'string' ? sig.documentation : (sig.documentation.value ?? '') } : undefined,
             parameters: (sig.parameters ?? []).map((p) => ({
               label: p.label,
-              documentation: p.documentation ? { value: p.documentation.value ?? p.documentation } : undefined
+              documentation: p.documentation ? { value: typeof p.documentation === 'string' ? p.documentation : (p.documentation.value ?? '') } : undefined
             }))
           })),
           activeSignature: sh.activeSignature ?? 0,
@@ -294,31 +294,28 @@ watch(
   }
 )
 
-// When projectPath changes, compute new URI and (re-)open the document
+// Combined watcher: triggers when either projectPath or lspReady changes.
+// immediate:true ensures didOpen fires even if the component mounts with
+// both values already set (e.g. re-opening app with a saved project).
 watch(
-  () => props.projectPath,
-  async (newPath) => {
-    if (!newPath) return
-    currentUri = await window.electronAPI.lspPathToUri(newPath + '/phplay-scratch.php')
-    if (props.lspReady) {
-      registerLspProviders(currentUri)
-      await openDocument()
-    }
-  }
-)
+  () => [props.projectPath, props.lspReady] as const,
+  async ([projectPath, ready]) => {
+    if (!projectPath || !ready) return
 
-// When LSP becomes ready (after lsp:start completes), register providers
-watch(
-  () => props.lspReady,
-  async (ready) => {
-    if (!ready || !currentUri) return
+    // Close previous scratch document before switching workspace
+    if (currentUri) {
+      await window.electronAPI.lspDidClose(currentUri).catch(() => undefined)
+    }
+
+    currentUri = await window.electronAPI.lspPathToUri(`${projectPath}/phplay-scratch.php`)
     registerLspProviders(currentUri)
     await openDocument()
-  }
+  },
+  { immediate: true }
 )
 
 onBeforeUnmount(async () => {
-  if (currentUri && props.lspReady) {
+  if (currentUri) {
     await window.electronAPI.lspDidClose(currentUri).catch(() => undefined)
   }
   disposeProviders()
