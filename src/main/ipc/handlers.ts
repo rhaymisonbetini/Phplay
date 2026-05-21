@@ -7,6 +7,7 @@ import { LocalExecutor } from '../executor/LocalExecutor'
 import { FrameworkDetector } from '../project/FrameworkDetector'
 import { RecentProjects } from '../project/RecentProjects'
 import { IntelephenseLsp, pathToUri } from '../lsp/IntelephenseLsp'
+import { Logger } from '../storage/Logger'
 import type { ExecutionContext } from '../executor/types'
 
 const phpDetector = new PhpDetector()
@@ -14,6 +15,8 @@ const executor = new LocalExecutor()
 const frameworkDetector = new FrameworkDetector()
 const lsp = new IntelephenseLsp()
 let recentProjects: RecentProjects
+let lspLogger: Logger | null = null
+let lastProjectPath: string | null = null
 
 function sessionFile(projectPath: string): string {
   const projectHash = createHash('sha256').update(projectPath).digest('hex').slice(0, 12)
@@ -75,13 +78,25 @@ export function registerIpcHandlers(): void {
 
   // ── Intelephense LSP ──────────────────────────────────────────────────────
 
-  ipcMain.handle('lsp:start', async (event, projectPath: string) => {
+  async function startLsp(
+    event: Electron.IpcMainInvokeEvent,
+    projectPath: string
+  ): Promise<void> {
     const storagePath = join(app.getPath('userData'), 'intelephense')
     await mkdir(storagePath, { recursive: true })
+    await mkdir(join(app.getPath('userData'), 'logs'), { recursive: true })
+
+    lastProjectPath = projectPath
+
+    if (!lspLogger) {
+      lspLogger = new Logger(join(app.getPath('userData'), 'logs', 'lsp.log'))
+      lsp.setLogger(lspLogger)
+    }
+
+    lspLogger.info(`Starting LSP for project: ${projectPath}`)
 
     lsp.stop()
 
-    // Forward state changes to the renderer that initiated lsp:start
     const onStateChanged = (payload: unknown) => {
       if (!event.sender.isDestroyed()) {
         event.sender.send('lsp:stateChanged', payload)
@@ -92,13 +107,23 @@ export function registerIpcHandlers(): void {
 
     lsp.start(storagePath)
 
-    // Initialize in background — indexing large projects can take minutes.
     lsp.initialize(projectPath, storagePath).catch((err: Error) => {
+      lspLogger?.error(`LSP initialize failed: ${err.message}`)
       if (!event.sender.isDestroyed()) {
         event.sender.send('lsp:stateChanged', { state: 'error', message: err.message })
       }
     })
+  }
 
+  ipcMain.handle('lsp:start', async (event, projectPath: string) => {
+    await startLsp(event, projectPath)
+    return { ok: true }
+  })
+
+  ipcMain.handle('lsp:restart', async (event) => {
+    if (!lastProjectPath) return { ok: false, error: 'No project loaded' }
+    lspLogger?.info('LSP restart requested')
+    await startLsp(event, lastProjectPath)
     return { ok: true }
   })
 

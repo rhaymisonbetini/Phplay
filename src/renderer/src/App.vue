@@ -164,11 +164,9 @@ function onSidebarPanelChange(panel: SidebarPanelType | null): void {
 }
 
 function restartLsp(): void {
-  const path = currentPath.value
-  if (!path) return
   lspReady.value = false
   lspState.value = 'stopped'
-  window.electronAPI.lspStart(path)
+  window.electronAPI.lspRestart()
 }
 
 useKeyboardShortcuts([
