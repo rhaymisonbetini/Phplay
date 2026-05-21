@@ -63,6 +63,17 @@ export function registerIpcHandlers(): void {
     return result.canceled ? null : result.filePaths[0]
   })
 
+  ipcMain.handle('file:save-dialog', async (_event, content: string, defaultName: string) => {
+    const result = await dialog.showSaveDialog({
+      title: 'Save Output',
+      defaultPath: defaultName,
+      filters: [{ name: 'Text files', extensions: ['txt'] }]
+    })
+    if (result.canceled || !result.filePath) return false
+    await writeFile(result.filePath, content, 'utf-8')
+    return true
+  })
+
   ipcMain.handle('project:detect-framework', async (_event, projectPath: string) => {
     return frameworkDetector.detect(projectPath)
   })

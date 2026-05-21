@@ -22,6 +22,9 @@ const api = {
 
   openProjectDialog: (): Promise<string | null> => ipcRenderer.invoke('project:open-dialog'),
 
+  saveOutputFile: (content: string, defaultName: string): Promise<boolean> =>
+    ipcRenderer.invoke('file:save-dialog', content, defaultName),
+
   detectFramework: (projectPath: string): Promise<ProjectInfo> =>
     ipcRenderer.invoke('project:detect-framework', projectPath),
 
