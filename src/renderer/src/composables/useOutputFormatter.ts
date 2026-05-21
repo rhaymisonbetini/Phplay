@@ -154,31 +154,82 @@ export function formatOutput(stdout: string): FormattedOutput {
   return formatPlain(text)
 }
 
-export function parsePhpError(stderr: string): {
+export interface StackFrame {
+  index: number
+  file: string
+  line: number | null
+  call: string
+}
+
+export interface PhpError {
   errorClass: string
   message: string
   file: string | null
   line: number | null
-  stackTrace: string | null
-} | null {
+  frames: StackFrame[]
+}
+
+const PHP_ERROR_CLASSES = [
+  'ParseError', 'TypeError', 'ValueError', 'ArithmeticError', 'DivisionByZeroError',
+  'ArgumentCountError', 'BadFunctionCallException', 'BadMethodCallException',
+  'RuntimeException', 'LogicException', 'InvalidArgumentException',
+  'OutOfRangeException', 'OutOfBoundsException', 'OverflowException',
+  'UnderflowException', 'UnexpectedValueException', 'RangeException',
+  'Error', 'Exception', 'Throwable'
+]
+
+const ERROR_PATTERN = new RegExp(
+  `^(${PHP_ERROR_CLASSES.join('|')}|[\\w\\\\]+(?:Error|Exception|Warning|Notice|Deprecated)[\\w\\\\]*):` +
+  `\\s*(.+?)\\s+in\\s+(.+?)\\s+on\\s+line\\s+(\\d+)`,
+  'm'
+)
+
+function parseFrames(stackRaw: string): StackFrame[] {
+  const frames: StackFrame[] = []
+  // Stack trace lines: "#0 /path/to/file.php(42): Class->method()"
+  const lineRe = /^#(\d+)\s+(.+?)(?:\((\d+)\))?:\s+(.*)$/gm
+  let m: RegExpExecArray | null
+  while ((m = lineRe.exec(stackRaw)) !== null) {
+    const filePart = m[2].trim()
+    // Filter out Phplay internal wrapper frames
+    if (filePart.includes('phplay-') || filePart === '{main}') continue
+    frames.push({
+      index: parseInt(m[1]),
+      file: filePart,
+      line: m[3] ? parseInt(m[3]) : null,
+      call: m[4].trim()
+    })
+  }
+  return frames
+}
+
+export function parsePhpError(stderr: string): PhpError | null {
   if (!stderr.trim()) return null
 
-  // Our wrapper format: "ClassName: message in /file on line N\n\nStack trace:\n..."
-  const m = stderr.match(/^([\w\\]+(?:Error|Exception|Warning|Notice|Deprecated)?[^:]*?):\s*(.*?)\s+in\s+(.*?)\s+on\s+line\s+(\d+)([\s\S]*)?$/m)
+  const m = ERROR_PATTERN.exec(stderr)
   if (m) {
-    const stackRaw = m[5] ?? ''
-    const stackTrace = stackRaw.includes('Stack trace:')
-      ? stackRaw.replace(/.*Stack trace:\s*/s, '').trim()
-      : null
+    const stackStart = stderr.indexOf('Stack trace:')
+    const stackRaw = stackStart !== -1 ? stderr.slice(stackStart) : ''
     return {
       errorClass: m[1].trim(),
       message: m[2].trim(),
       file: m[3].trim(),
       line: parseInt(m[4]),
-      stackTrace: stackTrace || null
+      frames: parseFrames(stackRaw)
     }
   }
 
-  // Fallback: just return the raw message as a generic error
-  return { errorClass: 'Error', message: stderr.trim(), file: null, line: null, stackTrace: null }
+  // Generic PHP error lines: "Fatal error: ... in /file on line N"
+  const genericM = stderr.match(/^(?:Fatal error|Warning|Notice|Deprecated|Parse error):\s*(.+?)\s+in\s+(.+?)\s+on\s+line\s+(\d+)/m)
+  if (genericM) {
+    return {
+      errorClass: 'Error',
+      message: genericM[1].trim(),
+      file: genericM[2].trim(),
+      line: parseInt(genericM[3]),
+      frames: []
+    }
+  }
+
+  return { errorClass: 'Error', message: stderr.trim(), file: null, line: null, frames: [] }
 }

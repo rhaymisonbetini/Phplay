@@ -176,8 +176,8 @@ async function copyOutput(): Promise<void> {
             <span v-if="phpError.line" class="shrink-0 text-text-disabled">line {{ phpError.line }}</span>
           </div>
 
-          <!-- Stack trace (collapsible) -->
-          <div v-if="phpError.stackTrace">
+          <!-- Stack trace (collapsible, structured frames) -->
+          <div v-if="phpError.frames.length > 0">
             <button
               class="flex items-center gap-1 text-2xs text-text-disabled hover:text-text-muted transition-colors"
               @click="stackExpanded = !stackExpanded"
@@ -189,12 +189,21 @@ async function copyOutput(): Promise<void> {
               >
                 <path d="M2 1l4 3-4 3" />
               </svg>
-              Stack trace
+              Stack trace ({{ phpError.frames.length }} frame{{ phpError.frames.length !== 1 ? 's' : '' }})
             </button>
-            <pre
-              v-if="stackExpanded"
-              class="mt-2 whitespace-pre-wrap break-words text-2xs text-text-disabled leading-relaxed"
-            >{{ phpError.stackTrace }}</pre>
+            <div v-if="stackExpanded" class="mt-2 space-y-1">
+              <div
+                v-for="frame in phpError.frames"
+                :key="frame.index"
+                class="flex items-start gap-2 text-2xs leading-relaxed"
+              >
+                <span class="text-text-disabled shrink-0 font-mono">#{{ frame.index }}</span>
+                <div class="min-w-0">
+                  <code class="text-text-secondary break-all">{{ frame.file }}<span v-if="frame.line" class="text-text-disabled">:{{ frame.line }}</span></code>
+                  <div class="text-text-disabled font-mono truncate" :title="frame.call">{{ frame.call }}</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
