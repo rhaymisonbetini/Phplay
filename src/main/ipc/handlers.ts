@@ -1,13 +1,13 @@
 import { ipcMain, dialog, app } from 'electron'
-import { readFile, writeFile, mkdir } from 'fs/promises'
+import { readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
-import { createHash } from 'crypto'
 import { PhpDetector } from '../php/PhpDetector'
 import { LocalExecutor } from '../executor/LocalExecutor'
 import { FrameworkDetector } from '../project/FrameworkDetector'
 import { RecentProjects } from '../project/RecentProjects'
 import { IntelephenseLsp, pathToUri } from '../lsp/IntelephenseLsp'
 import { Logger } from '../storage/Logger'
+import { WorkspaceService } from '../workspace/WorkspaceService'
 import type { ExecutionContext } from '../executor/types'
 
 const phpDetector = new PhpDetector()
@@ -15,16 +15,18 @@ const executor = new LocalExecutor()
 const frameworkDetector = new FrameworkDetector()
 const lsp = new IntelephenseLsp()
 let recentProjects: RecentProjects
+let workspaceService: WorkspaceService
 let lspLogger: Logger | null = null
 let lastProjectPath: string | null = null
 
 function sessionFile(projectPath: string): string {
-  const projectHash = createHash('sha256').update(projectPath).digest('hex').slice(0, 12)
-  return join(app.getPath('userData'), 'sessions', `${projectHash}.json`)
+  const ws = workspaceService.get(projectPath)
+  return join(ws.storagePath, 'sessions.json')
 }
 
 export function registerIpcHandlers(): void {
   recentProjects = new RecentProjects(app.getPath('userData'))
+  workspaceService = new WorkspaceService(app.getPath('userData'))
 
   ipcMain.handle('php:detect', async () => {
     return phpDetector.detect()
@@ -47,8 +49,8 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('session:save', async (_event, projectPath: string, sessions: unknown) => {
-    const file = sessionFile(projectPath)
-    await mkdir(join(app.getPath('userData'), 'sessions'), { recursive: true })
+    const ws = await workspaceService.ensure(projectPath)
+    const file = join(ws.storagePath, 'sessions.json')
     await writeFile(file, JSON.stringify(sessions), 'utf-8')
   })
 
@@ -82,18 +84,16 @@ export function registerIpcHandlers(): void {
     event: Electron.IpcMainInvokeEvent,
     projectPath: string
   ): Promise<void> {
-    const storagePath = join(app.getPath('userData'), 'intelephense')
-    await mkdir(storagePath, { recursive: true })
-    await mkdir(join(app.getPath('userData'), 'logs'), { recursive: true })
+    const ws = await workspaceService.ensure(projectPath)
 
     lastProjectPath = projectPath
 
     if (!lspLogger) {
-      lspLogger = new Logger(join(app.getPath('userData'), 'logs', 'lsp.log'))
+      lspLogger = new Logger(join(ws.logsPath, 'lsp.log'))
       lsp.setLogger(lspLogger)
     }
 
-    lspLogger.info(`Starting LSP for project: ${projectPath}`)
+    lspLogger.info(`Starting LSP for project: ${projectPath} (workspace: ${ws.id})`)
 
     lsp.stop()
 
@@ -105,9 +105,9 @@ export function registerIpcHandlers(): void {
     lsp.removeAllListeners('stateChanged')
     lsp.on('stateChanged', onStateChanged)
 
-    lsp.start(storagePath)
+    lsp.start(ws.lspCachePath)
 
-    lsp.initialize(projectPath, storagePath).catch((err: Error) => {
+    lsp.initialize(projectPath, ws.lspCachePath).catch((err: Error) => {
       lspLogger?.error(`LSP initialize failed: ${err.message}`)
       if (!event.sender.isDestroyed()) {
         event.sender.send('lsp:stateChanged', { state: 'error', message: err.message })
