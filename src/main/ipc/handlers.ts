@@ -8,12 +8,14 @@ import { RecentProjects } from '../project/RecentProjects'
 import { IntelephenseLsp, pathToUri } from '../lsp/IntelephenseLsp'
 import { Logger } from '../storage/Logger'
 import { WorkspaceService } from '../workspace/WorkspaceService'
+import { LaravelDiscoveryService } from '../laravel/LaravelDiscoveryService'
 import { ok, fail } from './types'
 import type { ExecutionContext } from '../executor/types'
 
 const phpDetector = new PhpDetector()
 const executor = new LocalExecutor()
 const frameworkDetector = new FrameworkDetector()
+const laravelDiscovery = new LaravelDiscoveryService()
 const lsp = new IntelephenseLsp()
 let recentProjects: RecentProjects
 let workspaceService: WorkspaceService
@@ -77,6 +79,18 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('recent:remove', async (_event, projectPath: string) => {
     return recentProjects.remove(projectPath)
+  })
+
+  // ── Laravel Discovery ─────────────────────────────────────────────────────
+
+  ipcMain.handle('laravel:discover', async (_event, projectPath: string, phpBinary: string) => {
+    try {
+      const ws = await workspaceService.ensure(projectPath)
+      const meta = await laravelDiscovery.discover(projectPath, ws.storagePath, phpBinary)
+      return ok(meta)
+    } catch (e) {
+      return fail('DISCOVERY_ERROR', (e as Error).message)
+    }
   })
 
   // ── Intelephense LSP ──────────────────────────────────────────────────────
