@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from 'child_process'
 import { EventEmitter } from 'events'
+import { pathToFileURL } from 'url'
 
 interface PendingRequest {
   resolve: (value: unknown) => void
@@ -232,7 +233,7 @@ export class IntelephenseLsp extends EventEmitter {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export function pathToUri(path: string): string {
-  return 'file://' + path.replace(/\\/g, '/')
+  return pathToFileURL(path).toString()
 }
 
 function range(start: number, end: number): number[] {
