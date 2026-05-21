@@ -55,6 +55,8 @@ declare global {
       lspStart: (projectPath: string) => Promise<{ ok: boolean; error?: string }>
       lspStop: () => Promise<void>
       lspIsReady: () => Promise<boolean>
+      lspGetState: () => Promise<string>
+      onLspStateChanged: (cb: (payload: { state: string; message?: string }) => void) => void
       lspDidOpen: (uri: string, text: string, version: number) => Promise<void>
       lspDidChange: (uri: string, text: string, version: number) => Promise<void>
       lspDidClose: (uri: string) => Promise<void>

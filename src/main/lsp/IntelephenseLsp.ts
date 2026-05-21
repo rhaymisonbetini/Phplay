@@ -1,6 +1,7 @@
 import { spawn, type ChildProcess } from 'child_process'
 import { EventEmitter } from 'events'
 import { pathToFileURL } from 'url'
+import type { LanguageServerState, LspStateChangedPayload } from './types'
 
 interface PendingRequest {
   resolve: (value: unknown) => void
@@ -20,10 +21,19 @@ export class IntelephenseLsp extends EventEmitter {
   private pending = new Map<number, PendingRequest>()
   private seq = 0
   private ready = false
+  private _state: LanguageServerState = 'stopped'
+
+  private setState(state: LanguageServerState, message?: string): void {
+    this._state = state
+    this.ready = state === 'ready'
+    const payload: LspStateChangedPayload = { state, message }
+    this.emit('stateChanged', payload)
+  }
 
   start(_storagePath: string): void {
     if (this.proc) return
 
+    this.setState('starting')
     const bin = require.resolve('intelephense/lib/intelephense.js')
     this.proc = spawn(process.execPath, [bin, '--stdio'], {
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -36,20 +46,23 @@ export class IntelephenseLsp extends EventEmitter {
     })
 
     this.proc.stderr!.on('data', (chunk: Buffer) => {
-      // intelephense writes progress/debug to stderr — ignore in production
       const line = chunk.toString().trim()
       if (line) this.emit('log', line)
     })
 
-    this.proc.on('exit', () => {
+    this.proc.on('exit', (code) => {
+      const wasReady = this._state === 'ready'
       this.proc = null
-      this.ready = false
-      // Reject all pending requests
       for (const [, req] of this.pending) {
         clearTimeout(req.timer)
         req.reject(new Error('LSP process exited'))
       }
       this.pending.clear()
+      if (!wasReady || code !== 0) {
+        this.setState('error', `Process exited with code ${code ?? 'unknown'}`)
+      } else {
+        this.setState('stopped')
+      }
     })
   }
 
@@ -115,6 +128,7 @@ export class IntelephenseLsp extends EventEmitter {
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   async initialize(projectPath: string, storagePath: string): Promise<void> {
+    this.setState('initializing')
     const rootUri = pathToUri(projectPath)
 
     await this.request('initialize', {
@@ -146,7 +160,7 @@ export class IntelephenseLsp extends EventEmitter {
     }, 120_000) // large projects can take minutes to index on first run
 
     this.notify('initialized', {})
-    this.ready = true
+    this.setState('ready')
 
     // Default settings — disable diagnostics for perf, enable completions
     this.notify('workspace/didChangeConfiguration', {
@@ -178,8 +192,10 @@ export class IntelephenseLsp extends EventEmitter {
     } catch { /* ignore */ }
     this.proc.kill()
     this.proc = null
-    this.ready = false
+    this.setState('stopped')
   }
+
+  getState(): LanguageServerState { return this._state }
 
   isReady(): boolean { return this.ready }
 

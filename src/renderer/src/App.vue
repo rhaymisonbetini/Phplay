@@ -38,6 +38,7 @@ const toastState = ref<ToastState>(null)
 const lastMetrics = ref<{ timeMs: number; memKb: number } | null>(null)
 const recentProjects = ref<RecentProject[]>([])
 const lspReady = ref(false)
+const lspState = ref<string>('stopped')
 const activeSidebarPanel = ref<SidebarPanelType | null>(null)
 
 const activeSession = computed(() => sessionStore.activeSession)
@@ -49,6 +50,12 @@ const { isSaved, restore } = useSnippetPersistence(sessions, currentPath)
 onMounted(async () => {
   // Listen for File > Open Project from Electron menu
   window.electronAPI.onMenuOpenProject(() => openProject())
+
+  // Track real LSP state from main process
+  window.electronAPI.onLspStateChanged(({ state }) => {
+    lspState.value = state
+    lspReady.value = state === 'ready'
+  })
 
   try {
     phpVersions.value = await window.electronAPI.detectPhp()
@@ -113,11 +120,10 @@ async function loadProject(path: string): Promise<void> {
     })
     recentProjects.value = (await window.electronAPI.listRecentProjects()) as RecentProject[]
 
-    // Start LSP non-blocking — indexing can take a moment
+    // Start LSP non-blocking — state updates come via onLspStateChanged
     lspReady.value = false
-    window.electronAPI.lspStart(path).then((result) => {
-      lspReady.value = result.ok
-    })
+    lspState.value = 'stopped'
+    window.electronAPI.lspStart(path)
 
     if (project.framework === 'laravel' && !project.hasVendor) {
       toastState.value = { type: 'no-vendor', projectName: project.name }
@@ -155,6 +161,14 @@ function applyCustomPhp(path: string): void {
 
 function onSidebarPanelChange(panel: SidebarPanelType | null): void {
   activeSidebarPanel.value = panel
+}
+
+function restartLsp(): void {
+  const path = currentPath.value
+  if (!path) return
+  lspReady.value = false
+  lspState.value = 'stopped'
+  window.electronAPI.lspStart(path)
 }
 
 useKeyboardShortcuts([
@@ -238,9 +252,11 @@ useKeyboardShortcuts([
       :has-project="projectStore.hasProject"
       :is-saved="isSaved"
       :lsp-ready="lspReady"
+      :lsp-state="lspState"
       @open-project="openProject"
       @select-php="selectedPhp = $event; projectStore.updatePhpBinary($event)"
       @open-php-config="showPhpConfig = true"
+      @restart-lsp="restartLsp"
     />
 
     <PhpConfigModal v-if="showPhpConfig" @close="showPhpConfig = false" @apply="applyCustomPhp" />

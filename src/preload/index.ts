@@ -36,6 +36,12 @@ const api = {
 
   lspIsReady: (): Promise<boolean> => ipcRenderer.invoke('lsp:isReady'),
 
+  lspGetState: (): Promise<string> => ipcRenderer.invoke('lsp:getState'),
+
+  onLspStateChanged: (cb: (payload: { state: string; message?: string }) => void): void => {
+    ipcRenderer.on('lsp:stateChanged', (_event, payload) => cb(payload))
+  },
+
   lspDidOpen: (uri: string, text: string, version: number): Promise<void> =>
     ipcRenderer.invoke('lsp:didOpen', uri, text, version),
 
