@@ -5,6 +5,7 @@ import { useSessionStore } from './stores/session'
 import { useProjectStore } from './stores/project'
 import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts'
 import { useSnippetPersistence } from './composables/useSnippetPersistence'
+import { useCommandRegistry } from './composables/useCommandRegistry'
 import AppTitleBar from './components/AppTitleBar.vue'
 import SessionTabBar from './components/SessionTabBar.vue'
 import SidebarRail from './components/SidebarRail.vue'
@@ -16,6 +17,7 @@ import AppStatusBar from './components/AppStatusBar.vue'
 import WelcomeScreen from './components/WelcomeScreen.vue'
 import PhpConfigModal from './components/PhpConfigModal.vue'
 import ProjectDetectionToast from './components/ProjectDetectionToast.vue'
+import CommandPalette from './components/CommandPalette.vue'
 import type { ExecutionResult, Framework, RecentProject } from './types/electron'
 
 type ToastState =
@@ -30,6 +32,7 @@ type SidebarPanelType = 'explorer' | 'history' | 'snippets'
 const sessionStore = useSessionStore()
 const projectStore = useProjectStore()
 const { sessions } = storeToRefs(sessionStore)
+const { commands, register, execute } = useCommandRegistry()
 
 const phpVersions = ref<Array<{ path: string; version: string }>>([])
 const selectedPhp = ref<string>('')
@@ -42,6 +45,7 @@ const lspState = ref<string>('stopped')
 const activeSidebarPanel = ref<SidebarPanelType | null>(null)
 const activeExecutionId = ref<string | null>(null)
 const liveOutput = ref<string>('')
+const showCommandPalette = ref(false)
 
 const activeSession = computed(() => sessionStore.activeSession)
 const currentPath = computed(() => projectStore.currentProject?.path ?? null)
@@ -190,9 +194,19 @@ function restartLsp(): void {
   window.electronAPI.lspRestart()
 }
 
+// Register command palette entries
+register({ id: 'open-project', label: 'Open Project', shortcut: 'Ctrl+O', handler: openProject })
+register({ id: 'run-snippet', label: 'Run Current Snippet', shortcut: 'Ctrl+Enter', handler: runCode })
+register({ id: 'stop-execution', label: 'Stop Execution', shortcut: 'Esc', handler: stopExecution })
+register({ id: 'restart-lsp', label: 'Restart PHP Intelligence', handler: restartLsp })
+register({ id: 'clear-output', label: 'Clear Output', shortcut: 'Ctrl+Shift+C', handler: clearOutput })
+register({ id: 'new-tab', label: 'New Tab', shortcut: 'Ctrl+T', handler: () => sessionStore.newSession() })
+register({ id: 'close-tab', label: 'Close Tab', shortcut: 'Ctrl+W', handler: () => sessionStore.closeSession(sessionStore.activeSessionId) })
+
 useKeyboardShortcuts([
   { key: 'Enter', ctrl: true, handler: runCode },
   { key: 'Escape', handler: stopExecution },
+  { key: 'p', ctrl: true, shift: true, handler: () => { showCommandPalette.value = true } },
   { key: 'c', ctrl: true, shift: true, handler: clearOutput },
   { key: 't', ctrl: true, handler: () => sessionStore.newSession() },
   { key: 'w', ctrl: true, handler: () => sessionStore.closeSession(sessionStore.activeSessionId) },
@@ -287,5 +301,12 @@ useKeyboardShortcuts([
     <PhpConfigModal v-if="showPhpConfig" @close="showPhpConfig = false" @apply="applyCustomPhp" />
 
     <ProjectDetectionToast :state="toastState" @dismiss="toastState = null" />
+
+    <CommandPalette
+      v-if="showCommandPalette"
+      :commands="commands"
+      @close="showCommandPalette = false"
+      @execute="execute"
+    />
   </div>
 </template>
