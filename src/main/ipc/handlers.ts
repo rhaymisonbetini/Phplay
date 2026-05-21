@@ -8,6 +8,7 @@ import { RecentProjects } from '../project/RecentProjects'
 import { IntelephenseLsp, pathToUri } from '../lsp/IntelephenseLsp'
 import { Logger } from '../storage/Logger'
 import { WorkspaceService } from '../workspace/WorkspaceService'
+import { ok, fail } from './types'
 import type { ExecutionContext } from '../executor/types'
 
 const phpDetector = new PhpDetector()
@@ -121,10 +122,10 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('lsp:restart', async (event) => {
-    if (!lastProjectPath) return { ok: false, error: 'No project loaded' }
+    if (!lastProjectPath) return fail('NO_PROJECT', 'No project loaded')
     lspLogger?.info('LSP restart requested')
     await startLsp(event, lastProjectPath)
-    return { ok: true }
+    return ok(true)
   })
 
   ipcMain.handle('lsp:stop', async () => {
@@ -153,25 +154,25 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('lsp:completion', async (_event, uri: string, line: number, character: number) => {
     try {
-      return await lsp.completion(uri, line, character)
-    } catch {
-      return null
+      return ok(await lsp.completion(uri, line, character))
+    } catch (e) {
+      return fail('LSP_ERROR', (e as Error).message)
     }
   })
 
   ipcMain.handle('lsp:hover', async (_event, uri: string, line: number, character: number) => {
     try {
-      return await lsp.hover(uri, line, character)
-    } catch {
-      return null
+      return ok(await lsp.hover(uri, line, character))
+    } catch (e) {
+      return fail('LSP_ERROR', (e as Error).message)
     }
   })
 
   ipcMain.handle('lsp:signatureHelp', async (_event, uri: string, line: number, character: number) => {
     try {
-      return await lsp.signatureHelp(uri, line, character)
-    } catch {
-      return null
+      return ok(await lsp.signatureHelp(uri, line, character))
+    } catch (e) {
+      return fail('LSP_ERROR', (e as Error).message)
     }
   })
 
