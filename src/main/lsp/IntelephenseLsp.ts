@@ -21,7 +21,7 @@ export class IntelephenseLsp extends EventEmitter {
   private seq = 0
   private ready = false
 
-  start(storagePath: string): void {
+  start(_storagePath: string): void {
     if (this.proc) return
 
     const bin = require.resolve('intelephense/lib/intelephense.js')

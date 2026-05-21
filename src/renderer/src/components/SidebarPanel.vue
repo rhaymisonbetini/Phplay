@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { RecentProject } from '../types/electron'
 
-const props = defineProps<{
+defineProps<{
   panel: 'explorer' | 'history' | 'snippets'
   currentProjectPath?: string | null
   currentProjectName?: string | null

@@ -58,11 +58,7 @@ echo $__output;
 
   private extractDeclares(code: string): { declares: string[]; rest: string } {
     const declares: string[] = []
-    let rest = code
-    const re = /^declare\s*\([^)]*\)\s*;/gm
-    let match: RegExpExecArray | null
-    // Collect all declare() at start of (non-whitespace) lines
-    const lines = rest.split('\n')
+    const lines = code.split('\n')
     const kept: string[] = []
     for (const line of lines) {
       if (/^\s*declare\s*\(/.test(line)) {
@@ -71,10 +67,7 @@ echo $__output;
         kept.push(line)
       }
     }
-    rest = kept.join('\n').trim()
-    // suppress unused var warning
-    void re; void match
-    return { declares, rest }
+    return { declares, rest: kept.join('\n').trim() }
   }
 
   private extractUseStatements(code: string): { useStatements: string[]; rest: string } {
