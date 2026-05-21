@@ -34,6 +34,8 @@ const api = {
 
   lspStop: (): Promise<void> => ipcRenderer.invoke('lsp:stop'),
 
+  lspRestart: (): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('lsp:restart'),
+
   lspIsReady: (): Promise<boolean> => ipcRenderer.invoke('lsp:isReady'),
 
   lspGetState: (): Promise<string> => ipcRenderer.invoke('lsp:getState'),

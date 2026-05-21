@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from 'child_process'
 import { EventEmitter } from 'events'
 import { pathToFileURL } from 'url'
 import type { LanguageServerState, LspStateChangedPayload } from './types'
+import { Logger } from '../storage/Logger'
 
 interface PendingRequest {
   resolve: (value: unknown) => void
@@ -22,12 +23,17 @@ export class IntelephenseLsp extends EventEmitter {
   private seq = 0
   private ready = false
   private _state: LanguageServerState = 'stopped'
+  private logger: Logger | null = null
 
   private setState(state: LanguageServerState, message?: string): void {
     this._state = state
     this.ready = state === 'ready'
     const payload: LspStateChangedPayload = { state, message }
     this.emit('stateChanged', payload)
+  }
+
+  setLogger(logger: Logger): void {
+    this.logger = logger
   }
 
   start(_storagePath: string): void {
@@ -47,7 +53,10 @@ export class IntelephenseLsp extends EventEmitter {
 
     this.proc.stderr!.on('data', (chunk: Buffer) => {
       const line = chunk.toString().trim()
-      if (line) this.emit('log', line)
+      if (line) {
+        this.emit('log', line)
+        this.logger?.error(`[stderr] ${line}`)
+      }
     })
 
     this.proc.on('exit', (code) => {

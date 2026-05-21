@@ -54,6 +54,7 @@ declare global {
       // Intelephense LSP
       lspStart: (projectPath: string) => Promise<{ ok: boolean; error?: string }>
       lspStop: () => Promise<void>
+      lspRestart: () => Promise<{ ok: boolean; error?: string }>
       lspIsReady: () => Promise<boolean>
       lspGetState: () => Promise<string>
       onLspStateChanged: (cb: (payload: { state: string; message?: string }) => void) => void
