@@ -38,6 +38,18 @@ let completionDisposable: monaco.IDisposable | null = null
 let hoverDisposable: monaco.IDisposable | null = null
 let signatureDisposable: monaco.IDisposable | null = null
 
+// ── IpcResult unwrap ─────────────────────────────────────────────────────────
+
+type IpcResult<T> = { ok: true; data: T } | { ok: false; error: unknown }
+
+function unwrapIpc<T>(result: unknown): T | null {
+  if (result && typeof result === 'object' && 'ok' in result) {
+    const r = result as IpcResult<T>
+    return r.ok ? r.data : null
+  }
+  return result as T | null
+}
+
 // ── LSP provider registration ────────────────────────────────────────────────
 
 function disposeProviders(): void {
@@ -57,12 +69,13 @@ function registerLspProviders(uri: string): void {
     async provideCompletionItems(model, position) {
       if (model.uri.toString() !== uri) return { suggestions: [] }
 
-      const raw = await window.electronAPI.lspCompletion(
+      const result = await window.electronAPI.lspCompletion(
         uri,
         position.lineNumber - 1,
         position.column - 1
       )
 
+      const raw = unwrapIpc(result)
       if (!raw) return { suggestions: [] }
       const items = (raw as { items?: unknown[] }).items ?? (Array.isArray(raw) ? raw : [])
       return {
@@ -75,11 +88,11 @@ function registerLspProviders(uri: string): void {
     async provideHover(model, position) {
       if (model.uri.toString() !== uri) return null
 
-      const raw = await window.electronAPI.lspHover(
+      const raw = unwrapIpc(await window.electronAPI.lspHover(
         uri,
         position.lineNumber - 1,
         position.column - 1
-      )
+      ))
 
       if (!raw) return null
       const hover = raw as { contents?: LspMarkupContent[]; range?: LspRange }
@@ -99,11 +112,11 @@ function registerLspProviders(uri: string): void {
     async provideSignatureHelp(model, position) {
       if (model.uri.toString() !== uri) return null
 
-      const raw = await window.electronAPI.lspSignatureHelp(
+      const raw = unwrapIpc(await window.electronAPI.lspSignatureHelp(
         uri,
         position.lineNumber - 1,
         position.column - 1
-      )
+      ))
 
       if (!raw) return null
       const sh = raw as LspSignatureHelp
