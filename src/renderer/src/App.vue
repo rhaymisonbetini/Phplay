@@ -224,6 +224,8 @@ useKeyboardShortcuts([
             :can-run="!!selectedPhp && !!activeSession"
             :project-path="currentPath"
             :lsp-ready="lspReady"
+            :framework="projectStore.framework"
+            :selected-php="selectedPhp"
             @update:code="sessionStore.setCode(sessionStore.activeSessionId, $event)"
             @run="runCode"
           />

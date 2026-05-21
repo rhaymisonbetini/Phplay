@@ -3,6 +3,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as monaco from 'monaco-editor'
 import { phplayDarkTheme } from '../assets/monaco-theme'
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
+import { registerLaravelCompletionProvider, loadLaravelMeta } from '../composables/useLaravelCompletions'
 
 window.MonacoEnvironment = {
   getWorker: (_workerId: string, _label: string): Worker => new EditorWorker()
@@ -15,13 +16,17 @@ const props = withDefaults(
     readOnly?: boolean
     projectPath?: string | null
     lspReady?: boolean
+    framework?: string
+    selectedPhp?: string
   }>(),
   {
     modelValue: '<?php\n\n',
     language: 'php',
     readOnly: false,
     projectPath: null,
-    lspReady: false
+    lspReady: false,
+    framework: 'plain',
+    selectedPhp: ''
   }
 )
 
@@ -37,6 +42,7 @@ let docVersion = 0
 let completionDisposable: monaco.IDisposable | null = null
 let hoverDisposable: monaco.IDisposable | null = null
 let signatureDisposable: monaco.IDisposable | null = null
+let laravelCompletionDisposable: monaco.IDisposable | null = null
 
 // ── IpcResult unwrap ─────────────────────────────────────────────────────────
 
@@ -56,9 +62,11 @@ function disposeProviders(): void {
   completionDisposable?.dispose()
   hoverDisposable?.dispose()
   signatureDisposable?.dispose()
+  laravelCompletionDisposable?.dispose()
   completionDisposable = null
   hoverDisposable = null
   signatureDisposable = null
+  laravelCompletionDisposable = null
 }
 
 function registerLspProviders(uri: string): void {
@@ -321,6 +329,15 @@ watch(
     currentUri = await window.electronAPI.lspPathToUri(`${projectPath}/phplay-scratch.php`)
     registerLspProviders(currentUri)
     await openDocument()
+
+    // Load Laravel-specific completions in the background
+    if (props.framework === 'laravel' && props.selectedPhp) {
+      loadLaravelMeta(projectPath, props.selectedPhp).then((meta) => {
+        if (!meta) return
+        laravelCompletionDisposable?.dispose()
+        laravelCompletionDisposable = registerLaravelCompletionProvider(monaco, meta)
+      })
+    }
   },
   { immediate: true }
 )
