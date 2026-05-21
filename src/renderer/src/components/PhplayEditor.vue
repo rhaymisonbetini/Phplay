@@ -74,8 +74,8 @@ function registerLspProviders(uri: string): void {
 
   completionDisposable = monaco.languages.registerCompletionItemProvider('php', {
     triggerCharacters: ['.', ':', '\\', '$', '(', ',', ' '],
-    async provideCompletionItems(model, position) {
-      if (model.uri.toString() !== uri) return { suggestions: [] }
+    async provideCompletionItems(_model, position) {
+      if (!uri) return { suggestions: [] }
 
       const result = await window.electronAPI.lspCompletion(
         uri,
@@ -87,14 +87,14 @@ function registerLspProviders(uri: string): void {
       if (!raw) return { suggestions: [] }
       const items = (raw as { items?: unknown[] }).items ?? (Array.isArray(raw) ? raw : [])
       return {
-        suggestions: (items as LspCompletionItem[]).map((item) => lspItemToMonaco(item, model, position))
+        suggestions: (items as LspCompletionItem[]).map((item) => lspItemToMonaco(item, _model, position))
       }
     }
   })
 
   hoverDisposable = monaco.languages.registerHoverProvider('php', {
-    async provideHover(model, position) {
-      if (model.uri.toString() !== uri) return null
+    async provideHover(_model, position) {
+      if (!uri) return null
 
       const raw = unwrapIpc(await window.electronAPI.lspHover(
         uri,
@@ -117,8 +117,8 @@ function registerLspProviders(uri: string): void {
 
   signatureDisposable = monaco.languages.registerSignatureHelpProvider('php', {
     signatureHelpTriggerCharacters: ['(', ','],
-    async provideSignatureHelp(model, position) {
-      if (model.uri.toString() !== uri) return null
+    async provideSignatureHelp(_model, position) {
+      if (!uri) return null
 
       const raw = unwrapIpc(await window.electronAPI.lspSignatureHelp(
         uri,
@@ -289,7 +289,7 @@ onMounted(() => {
     tabSize: 4,
     insertSpaces: true,
     suggestOnTriggerCharacters: true,
-    quickSuggestions: { other: true, comments: false, strings: false },
+    quickSuggestions: { other: true, comments: false, strings: true },
     parameterHints: { enabled: true }
   })
 
