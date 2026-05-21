@@ -44,6 +44,9 @@ declare global {
     electronAPI: {
       detectPhp: () => Promise<PhpBinary[]>
       executePhp: (code: string, context: ExecutionContext) => Promise<ExecutionResult>
+      cancelExecution: (executionId: string) => Promise<boolean>
+      onExecutionOutput: (cb: (payload: { executionId: string; chunk: string; stream: 'stdout' | 'stderr' }) => void) => void
+      onExecutionStarted: (cb: (payload: { executionId: string }) => void) => void
       openProjectDialog: () => Promise<string | null>
       detectFramework: (projectPath: string) => Promise<ProjectInfo>
       saveSession: (projectPath: string, sessions: unknown) => Promise<void>

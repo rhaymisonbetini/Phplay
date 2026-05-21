@@ -40,6 +40,7 @@ const recentProjects = ref<RecentProject[]>([])
 const lspReady = ref(false)
 const lspState = ref<string>('stopped')
 const activeSidebarPanel = ref<SidebarPanelType | null>(null)
+const activeExecutionId = ref<string | null>(null)
 
 const activeSession = computed(() => sessionStore.activeSession)
 const currentPath = computed(() => projectStore.currentProject?.path ?? null)
@@ -55,6 +56,11 @@ onMounted(async () => {
   window.electronAPI.onLspStateChanged(({ state }) => {
     lspState.value = state
     lspReady.value = state === 'ready'
+  })
+
+  // Track active execution ID for cancel support
+  window.electronAPI.onExecutionStarted(({ executionId }) => {
+    activeExecutionId.value = executionId
   })
 
   try {
@@ -96,6 +102,14 @@ async function runCode(): Promise<void> {
     })
   } finally {
     sessionStore.setRunning(session.id, false)
+    activeExecutionId.value = null
+  }
+}
+
+async function stopExecution(): Promise<void> {
+  if (activeExecutionId.value) {
+    await window.electronAPI.cancelExecution(activeExecutionId.value)
+    activeExecutionId.value = null
   }
 }
 
@@ -171,6 +185,7 @@ function restartLsp(): void {
 
 useKeyboardShortcuts([
   { key: 'Enter', ctrl: true, handler: runCode },
+  { key: 'Escape', handler: stopExecution },
   { key: 'c', ctrl: true, shift: true, handler: clearOutput },
   { key: 't', ctrl: true, handler: () => sessionStore.newSession() },
   { key: 'w', ctrl: true, handler: () => sessionStore.closeSession(sessionStore.activeSessionId) },
@@ -222,12 +237,14 @@ useKeyboardShortcuts([
             :code="activeSession?.code ?? '<?php\n\n'"
             :is-running="activeSession?.isRunning ?? false"
             :can-run="!!selectedPhp && !!activeSession"
+            :can-stop="!!activeExecutionId"
             :project-path="currentPath"
             :lsp-ready="lspReady"
             :framework="projectStore.framework"
             :selected-php="selectedPhp"
             @update:code="sessionStore.setCode(sessionStore.activeSessionId, $event)"
             @run="runCode"
+            @stop="stopExecution"
           />
         </template>
 

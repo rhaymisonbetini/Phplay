@@ -2,7 +2,7 @@ import { ipcMain, dialog, app } from 'electron'
 import { readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { PhpDetector } from '../php/PhpDetector'
-import { LocalExecutor } from '../executor/LocalExecutor'
+import { PhpExecutionService } from '../executor/PhpExecutionService'
 import { FrameworkDetector } from '../project/FrameworkDetector'
 import { RecentProjects } from '../project/RecentProjects'
 import { IntelephenseLsp, pathToUri } from '../lsp/IntelephenseLsp'
@@ -13,7 +13,7 @@ import { ok, fail } from './types'
 import type { ExecutionContext } from '../executor/types'
 
 const phpDetector = new PhpDetector()
-const executor = new LocalExecutor()
+const executionService = new PhpExecutionService()
 const frameworkDetector = new FrameworkDetector()
 const laravelDiscovery = new LaravelDiscoveryService()
 const lsp = new IntelephenseLsp()
@@ -35,8 +35,24 @@ export function registerIpcHandlers(): void {
     return phpDetector.detect()
   })
 
-  ipcMain.handle('php:execute', async (_event, code: string, context: ExecutionContext) => {
-    return executor.execute(code, context)
+  ipcMain.handle('php:execute', async (event, code: string, context: ExecutionContext) => {
+    const { executionId, result } = await executionService.run(
+      code,
+      context,
+      (id, chunk, stream) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('execution:output', { executionId: id, chunk, stream })
+        }
+      }
+    )
+    if (!event.sender.isDestroyed()) {
+      event.sender.send('execution:started', { executionId })
+    }
+    return result
+  })
+
+  ipcMain.handle('execution:cancel', (_event, executionId: string) => {
+    return executionService.cancel(executionId)
   })
 
   ipcMain.handle('project:open-dialog', async () => {
