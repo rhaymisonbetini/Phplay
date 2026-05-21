@@ -48,6 +48,7 @@ declare global {
       onExecutionOutput: (cb: (payload: { executionId: string; chunk: string; stream: 'stdout' | 'stderr' }) => void) => void
       onExecutionStarted: (cb: (payload: { executionId: string }) => void) => void
       openProjectDialog: () => Promise<string | null>
+      saveOutputFile: (content: string, defaultName: string) => Promise<boolean>
       detectFramework: (projectPath: string) => Promise<ProjectInfo>
       saveSession: (projectPath: string, sessions: unknown) => Promise<void>
       loadSession: (projectPath: string) => Promise<unknown>

@@ -51,12 +51,37 @@ watch(() => props.result, async () => {
 
 watch(() => props.liveOutput, scrollToBottom)
 
+const MAX_LINES = 5000
+const DISPLAY_LINES = 2000
+const displayLinesCount = DISPLAY_LINES
+
+const displayOutput = computed(() => {
+  const text = props.result?.stdout ?? ''
+  if (!text) return null
+  const lines = text.split('\n')
+  if (lines.length <= MAX_LINES) return { text, truncated: false, total: lines.length }
+  const shown = lines.slice(-DISPLAY_LINES).join('\n')
+  return { text: shown, truncated: true, total: lines.length }
+})
+
+const formattedDisplay = computed(() => {
+  if (!displayOutput.value) return null
+  return formatOutput(displayOutput.value.text)
+})
+
 async function copyOutput(): Promise<void> {
   const text = props.result?.stdout ?? ''
   if (!text) return
   await navigator.clipboard.writeText(text)
   copyLabel.value = 'Copied!'
   setTimeout(() => { copyLabel.value = 'Copy' }, 2000)
+}
+
+async function saveOutput(): Promise<void> {
+  const text = props.result?.stdout ?? ''
+  if (!text) return
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+  await window.electronAPI.saveOutputFile(text, `phplay-output-${ts}.txt`)
 }
 </script>
 
@@ -90,9 +115,19 @@ async function copyOutput(): Promise<void> {
           <span v-if="formattedMemory" class="text-text-disabled">{{ formattedMemory }}</span>
         </div>
 
+        <!-- Save -->
+        <button
+          v-if="result?.stdout"
+          class="btn-ghost text-2xs"
+          title="Save output as .txt"
+          @click="saveOutput"
+        >
+          Save
+        </button>
+
         <!-- Copy -->
         <button
-          v-if="formatted && formatted.type !== 'empty'"
+          v-if="formattedDisplay && formattedDisplay.type !== 'empty'"
           class="btn-ghost text-2xs"
           :title="copyLabel"
           @click="copyOutput"
@@ -127,29 +162,36 @@ async function copyOutput(): Promise<void> {
         </div>
       </div>
 
-      <!-- Empty state -->
-      <div v-else-if="!hasOutput" class="flex h-full flex-col items-center justify-center gap-2 text-text-disabled">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.4">
-          <rect x="4" y="4" width="24" height="24" rx="3" />
-          <path d="M9 12h14M9 17h10M9 22h12" stroke-linecap="round" />
+      <!-- Empty state: compact, max 80px -->
+      <div
+        v-else-if="!hasOutput"
+        class="flex items-center justify-center gap-2 text-text-disabled py-5"
+        style="max-height: 80px"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.5">
+          <rect x="1" y="1" width="12" height="12" rx="2" />
+          <path d="M4 5h6M4 7.5h4M4 10h5" stroke-linecap="round" />
         </svg>
-        <p class="text-xs">
-          Press
-          <kbd class="rounded bg-bg-elevated px-1 py-0.5 font-mono text-2xs text-text-muted">▶ Run</kbd>
-          or
-          <kbd class="rounded bg-bg-elevated px-1 py-0.5 font-mono text-2xs text-text-muted">Ctrl+Enter</kbd>
-          to execute
-        </p>
+        <span class="text-xs">Run <kbd class="rounded bg-bg-elevated px-1 font-mono text-2xs text-text-muted">Ctrl+Enter</kbd> to execute</span>
       </div>
 
       <!-- Output content -->
       <div v-else class="flex flex-col h-full">
 
+        <!-- Truncation notice -->
+        <div
+          v-if="displayOutput?.truncated"
+          class="mx-4 mt-4 mb-1 rounded bg-bg-elevated px-3 py-1.5 text-2xs text-text-muted"
+        >
+          Output truncated — showing last {{ displayLinesCount.toLocaleString() }} of {{ displayOutput.total.toLocaleString() }} lines.
+          Use <strong>Save</strong> to get the full output.
+        </div>
+
         <!-- stdout (formatted) -->
         <div
-          v-if="formatted && formatted.type !== 'empty'"
+          v-if="formattedDisplay && formattedDisplay.type !== 'empty'"
           class="flex-1 overflow-auto p-4 select-text"
-          v-html="formatted.html"
+          v-html="formattedDisplay.html"
         />
 
         <!-- Error block -->
