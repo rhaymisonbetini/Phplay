@@ -5,7 +5,8 @@ import { PhpDetector } from '../php/PhpDetector'
 import { PhpExecutionService } from '../executor/PhpExecutionService'
 import { FrameworkDetector } from '../project/FrameworkDetector'
 import { RecentProjects } from '../project/RecentProjects'
-import { IntelephenseLsp, pathToUri } from '../lsp/IntelephenseLsp'
+import { pathToUri } from '../lsp/IntelephenseLsp'
+import { LanguageServerManager } from '../lsp/LanguageServerManager'
 import { Logger } from '../storage/Logger'
 import { WorkspaceService } from '../workspace/WorkspaceService'
 import { LaravelDiscoveryService } from '../laravel/LaravelDiscoveryService'
@@ -16,11 +17,12 @@ const phpDetector = new PhpDetector()
 const executionService = new PhpExecutionService()
 const frameworkDetector = new FrameworkDetector()
 const laravelDiscovery = new LaravelDiscoveryService()
-const lsp = new IntelephenseLsp()
+const lspManager = new LanguageServerManager()
 let recentProjects: RecentProjects
 let workspaceService: WorkspaceService
 let lspLogger: Logger | null = null
 let lastProjectPath: string | null = null
+let lastWorkspaceId: string | null = null
 
 function sessionFile(projectPath: string): string {
   const ws = workspaceService.get(projectPath)
@@ -129,15 +131,13 @@ export function registerIpcHandlers(): void {
     const ws = await workspaceService.ensure(projectPath)
 
     lastProjectPath = projectPath
+    lastWorkspaceId = ws.id
 
     if (!lspLogger) {
       lspLogger = new Logger(join(ws.logsPath, 'lsp.log'))
-      lsp.setLogger(lspLogger)
     }
 
     lspLogger.info(`Starting LSP for project: ${projectPath} (workspace: ${ws.id})`)
-
-    lsp.stop()
 
     const onStateChanged = (payload: unknown) => {
       lspLogger?.info(`LSP stateChanged: ${JSON.stringify(payload)}`)
@@ -145,10 +145,8 @@ export function registerIpcHandlers(): void {
         event.sender.send('lsp:stateChanged', payload)
       }
     }
-    lsp.removeAllListeners('stateChanged')
-    lsp.on('stateChanged', onStateChanged)
 
-    lsp.start(ws.lspCachePath)
+    const lsp = lspManager.start(ws.id, projectPath, ws.lspCachePath, lspLogger, onStateChanged)
 
     lsp.initialize(projectPath, ws.lspCachePath).catch((err: Error) => {
       lspLogger?.error(`LSP initialize failed: ${err.message}`)
@@ -170,31 +168,33 @@ export function registerIpcHandlers(): void {
     return ok(true)
   })
 
-  ipcMain.handle('lsp:stop', async () => {
-    lsp.stop()
+  ipcMain.handle('lsp:stop', () => {
+    if (lastWorkspaceId) lspManager.stop(lastWorkspaceId)
   })
 
   ipcMain.handle('lsp:isReady', () => {
-    return lsp.isReady()
+    return lspManager.getActive()?.isReady() ?? false
   })
 
   ipcMain.handle('lsp:getState', () => {
-    return lsp.getState()
+    return lspManager.getActive()?.getState() ?? 'stopped'
   })
 
   ipcMain.handle('lsp:didOpen', (_event, uri: string, text: string, version: number) => {
-    lsp.didOpen(uri, text, version)
+    lspManager.getActive()?.didOpen(uri, text, version)
   })
 
   ipcMain.handle('lsp:didChange', (_event, uri: string, text: string, version: number) => {
-    lsp.didChange(uri, text, version)
+    lspManager.getActive()?.didChange(uri, text, version)
   })
 
   ipcMain.handle('lsp:didClose', (_event, uri: string) => {
-    lsp.didClose(uri)
+    lspManager.getActive()?.didClose(uri)
   })
 
   ipcMain.handle('lsp:completion', async (_event, uri: string, line: number, character: number) => {
+    const lsp = lspManager.getActive()
+    if (!lsp) return fail('LSP_NOT_READY', 'No active LSP instance')
     try {
       return ok(await lsp.completion(uri, line, character))
     } catch (e) {
@@ -203,6 +203,8 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('lsp:hover', async (_event, uri: string, line: number, character: number) => {
+    const lsp = lspManager.getActive()
+    if (!lsp) return fail('LSP_NOT_READY', 'No active LSP instance')
     try {
       return ok(await lsp.hover(uri, line, character))
     } catch (e) {
@@ -211,6 +213,8 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('lsp:signatureHelp', async (_event, uri: string, line: number, character: number) => {
+    const lsp = lspManager.getActive()
+    if (!lsp) return fail('LSP_NOT_READY', 'No active LSP instance')
     try {
       return ok(await lsp.signatureHelp(uri, line, character))
     } catch (e) {
@@ -220,4 +224,6 @@ export function registerIpcHandlers(): void {
 
   // Expose URI helper so renderer doesn't need path manipulation
   ipcMain.handle('lsp:pathToUri', (_event, path: string) => pathToUri(path))
+
+  app.on('before-quit', () => lspManager.stopAll())
 }

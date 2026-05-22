@@ -25,6 +25,7 @@ Thumbs.db
 
 # Internal product documentation
 documento-tecnico-produto-phplay.md
+PHPLAY_MATURITY_ROADMAP.md
 
 # TypeScript
 *.tsbuildinfo
