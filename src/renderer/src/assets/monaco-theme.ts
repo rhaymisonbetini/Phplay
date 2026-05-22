@@ -5,77 +5,134 @@ export const phplayDarkTheme: Monaco.editor.IStandaloneThemeData = {
   inherit: true,
   rules: [
     // Base
-    { token: '', foreground: 'e4e4e7', background: '1e1e21' },
+    { token: '', foreground: 'E6EDF3', background: '1E2430' },
 
     // Comments
-    { token: 'comment', foreground: '6b7280', fontStyle: 'italic' },
-    { token: 'comment.line', foreground: '6b7280', fontStyle: 'italic' },
-    { token: 'comment.block', foreground: '6b7280', fontStyle: 'italic' },
+    { token: 'comment',       foreground: '546E7A', fontStyle: 'italic' },
+    { token: 'comment.line',  foreground: '546E7A', fontStyle: 'italic' },
+    { token: 'comment.block', foreground: '546E7A', fontStyle: 'italic' },
 
-    // PHP-specific
-    { token: 'keyword', foreground: 'c084fc' },
-    { token: 'keyword.control', foreground: 'c084fc' },
-    { token: 'keyword.operator', foreground: '94a3b8' },
-    { token: 'keyword.other', foreground: 'c084fc' },
+    // PHP keywords
+    { token: 'keyword',         foreground: 'BD93F9' },
+    { token: 'keyword.control', foreground: 'BD93F9' },
+    { token: 'keyword.other',   foreground: 'BD93F9' },
+    { token: 'keyword.operator',foreground: '9BA7B4' },
 
     // Strings
-    { token: 'string', foreground: '86efac' },
-    { token: 'string.quoted', foreground: '86efac' },
-    { token: 'string.template', foreground: '86efac' },
+    { token: 'string',        foreground: '50FA7B' },
+    { token: 'string.quoted', foreground: '50FA7B' },
+    { token: 'string.template',foreground: '50FA7B' },
 
     // Numbers
-    { token: 'number', foreground: 'fb923c' },
-    { token: 'number.float', foreground: 'fb923c' },
-    { token: 'number.hex', foreground: 'fb923c' },
+    { token: 'number',       foreground: 'FFB86C' },
+    { token: 'number.float', foreground: 'FFB86C' },
+    { token: 'number.hex',   foreground: 'FFB86C' },
 
-    // Variables
-    { token: 'variable', foreground: 'f87171' },
-    { token: 'variable.predefined', foreground: 'f87171', fontStyle: 'italic' },
+    // Variables ($var)
+    { token: 'variable',            foreground: 'FF79C6' },
+    { token: 'variable.predefined', foreground: 'FF79C6', fontStyle: 'italic' },
 
-    // Functions
-    { token: 'identifier', foreground: '60a5fa' },
-    { token: 'type', foreground: '34d399' },
-
-    // Operators & punctuation
-    { token: 'delimiter', foreground: '94a3b8' },
-    { token: 'operator', foreground: '94a3b8' },
-
-    // Tags (HTML embedded in PHP)
-    { token: 'tag', foreground: '60a5fa' },
-    { token: 'attribute.name', foreground: '86efac' },
-    { token: 'attribute.value', foreground: 'fb923c' },
-
-    // PHP open/close tags
-    { token: 'metatag', foreground: 'a78bfa', fontStyle: 'bold' },
+    // Functions and identifiers
+    { token: 'identifier', foreground: '00D8FF' },
+    { token: 'type',       foreground: '8BE9FD' },
 
     // Constants
-    { token: 'constant', foreground: 'fb923c' },
-    { token: 'constant.language', foreground: 'a78bfa' }
+    { token: 'constant',          foreground: 'FFB86C' },
+    { token: 'constant.language', foreground: 'BD93F9' },
+
+    // Operators & punctuation
+    { token: 'delimiter', foreground: '9BA7B4' },
+    { token: 'operator',  foreground: 'FF79C6' },
+
+    // PHP tags
+    { token: 'metatag', foreground: 'BD93F9', fontStyle: 'bold' },
+
+    // HTML embedded in PHP
+    { token: 'tag',             foreground: '00D8FF' },
+    { token: 'attribute.name',  foreground: '50FA7B' },
+    { token: 'attribute.value', foreground: 'FFB86C' }
   ],
   colors: {
-    'editor.background': '#1e1e21',
-    'editor.foreground': '#e4e4e7',
-    'editor.lineHighlightBackground': '#27272a',
-    'editor.selectionBackground': '#3f3f4680',
-    'editor.inactiveSelectionBackground': '#2d2d3060',
-    'editorCursor.foreground': '#10b981',
-    'editorLineNumber.foreground': '#52525b',
-    'editorLineNumber.activeForeground': '#a1a1aa',
-    'editorIndentGuide.background': '#2a2a2d',
-    'editorIndentGuide.activeBackground': '#3f3f46',
-    'editorWhitespace.foreground': '#3f3f46',
-    'editorRuler.foreground': '#2a2a2d',
-    'editorWidget.background': '#1e1e21',
-    'editorWidget.border': '#3f3f46',
-    'editorSuggestWidget.background': '#1e1e21',
-    'editorSuggestWidget.border': '#3f3f46',
-    'editorSuggestWidget.selectedBackground': '#27272a',
-    'editorHoverWidget.background': '#1e1e21',
-    'editorHoverWidget.border': '#3f3f46',
-    'scrollbarSlider.background': '#3f3f4660',
-    'scrollbarSlider.hoverBackground': '#52525b80',
-    'scrollbarSlider.activeBackground': '#71717a80',
-    'minimap.background': '#18181b',
-    'editorGutter.background': '#1e1e21'
+    // Editor canvas
+    'editor.background':             '#1E2430',
+    'editor.foreground':             '#E6EDF3',
+
+    // Line highlights
+    'editor.lineHighlightBackground':      '#202938',
+    'editor.lineHighlightBorder':          '#00000000',
+
+    // Selection
+    'editor.selectionBackground':         '#BD93F940',
+    'editor.inactiveSelectionBackground': '#BD93F920',
+    'editor.selectionHighlightBackground':'#BD93F918',
+
+    // Cursor
+    'editorCursor.foreground': '#00D8FF',
+    'editorCursor.background': '#161B22',
+
+    // Line numbers
+    'editorLineNumber.foreground':       '#435060',
+    'editorLineNumber.activeForeground': '#9BA7B4',
+
+    // Indent guides
+    'editorIndentGuide.background':       '#1D2635',
+    'editorIndentGuide.activeBackground': '#253043',
+
+    // Whitespace
+    'editorWhitespace.foreground': '#253043',
+
+    // Bracket match
+    'editorBracketMatch.background': 'rgba(0,216,255,0.08)',
+    'editorBracketMatch.border':     '#00D8FF60',
+
+    // Bracket pair colorization
+    'editorBracketHighlight.foreground1': '#00D8FF',
+    'editorBracketHighlight.foreground2': '#BD93F9',
+    'editorBracketHighlight.foreground3': '#50FA7B',
+    'editorBracketHighlight.foreground4': '#FFB86C',
+
+    // Widgets (suggest, hover)
+    'editorWidget.background':  '#202938',
+    'editorWidget.border':      '#253043',
+    'editorWidget.foreground':  '#E6EDF3',
+
+    // Suggest widget
+    'editorSuggestWidget.background':         '#202938',
+    'editorSuggestWidget.border':             '#253043',
+    'editorSuggestWidget.foreground':         '#E6EDF3',
+    'editorSuggestWidget.selectedBackground': '#243042',
+    'editorSuggestWidget.highlightForeground':'#00D8FF',
+    'editorSuggestWidget.focusHighlightForeground': '#00D8FF',
+
+    // Hover widget
+    'editorHoverWidget.background': '#202938',
+    'editorHoverWidget.border':     '#253043',
+
+    // Scrollbar
+    'scrollbarSlider.background':       '#253043',
+    'scrollbarSlider.hoverBackground':  '#2E3D55',
+    'scrollbarSlider.activeBackground': '#3A4F6A',
+
+    // Minimap
+    'minimap.background':           '#1E2430',
+    'minimapSlider.background':     '#25304380',
+    'minimapSlider.hoverBackground':'#2E3D5580',
+
+    // Gutter
+    'editorGutter.background': '#1E2430',
+
+    // Error/warning squiggles
+    'editorError.foreground':   '#FF5555',
+    'editorWarning.foreground': '#FFB86C',
+    'editorInfo.foreground':    '#00D8FF',
+
+    // Ruler
+    'editorRuler.foreground': '#1D2635',
+
+    // Inlay hints
+    'editorInlayHint.background':   '#20293880',
+    'editorInlayHint.foreground':   '#6B7C8E',
+    'editorInlayHint.typeForeground': '#BD93F9',
+    'editorInlayHint.parameterForeground': '#9BA7B4'
   }
 }
