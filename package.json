@@ -27,6 +27,8 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.0",
     "@electron-toolkit/utils": "^3.0.0",
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
     "electron-store": "^8.2.0",
     "intelephense": "^1.18.3",
     "monaco-editor": "^0.50.0",

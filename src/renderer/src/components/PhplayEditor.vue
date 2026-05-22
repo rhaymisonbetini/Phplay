@@ -277,20 +277,50 @@ onMounted(() => {
     language: props.language,
     theme: 'phplay-dark',
     readOnly: props.readOnly,
-    minimap: { enabled: false },
+
+    // Font
+    fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
     fontSize: 14,
+    lineHeight: 22,
+    fontLigatures: true,
+    letterSpacing: 0,
+
+    // Layout
+    minimap: { enabled: false },
     lineNumbers: 'on',
     automaticLayout: true,
     scrollBeyondLastLine: false,
-    renderLineHighlight: 'line',
-    padding: { top: 12, bottom: 12 },
+    padding: { top: 16, bottom: 16 },
     wordWrap: 'on',
     folding: true,
     tabSize: 4,
     insertSpaces: true,
+
+    // Line appearance
+    renderLineHighlight: 'gutter',
+    cursorStyle: 'line',
+    cursorBlinking: 'smooth',
+    cursorWidth: 2,
+    cursorSmoothCaretAnimation: 'on',
+
+    // Bracket colorization
+    bracketPairColorization: { enabled: true },
+
+    // Completions
     suggestOnTriggerCharacters: true,
     quickSuggestions: { other: true, comments: false, strings: true },
-    parameterHints: { enabled: true }
+    parameterHints: { enabled: true },
+    suggest: {
+      showKeywords: true,
+      showSnippets: true,
+      showClasses: true,
+      showFunctions: true,
+      preview: true,
+      insertMode: 'replace'
+    },
+
+    // Inlay hints
+    inlayHints: { enabled: 'on' }
   })
 
   editor.onDidChangeModelContent(() => {
