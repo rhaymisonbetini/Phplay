@@ -26,7 +26,7 @@ function addTab() {
 
 <template>
   <div
-    class="flex h-8 shrink-0 items-center border-b border-border-subtle bg-bg-surface"
+    class="flex shrink-0 items-center border-b border-border-subtle bg-bg-surface"
     style="height: var(--tabbar-height)"
   >
     <!-- Tabs -->

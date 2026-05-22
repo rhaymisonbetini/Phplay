@@ -19,19 +19,20 @@ function toggle(panel: Panel): void {
 
 <template>
   <div
-    class="flex flex-col items-center border-r border-border-subtle bg-bg-surface py-1"
+    class="flex flex-col items-center border-r border-border-subtle bg-bg-surface py-2"
     style="width: var(--sidebar-width)"
   >
     <!-- Top items -->
-    <div class="flex flex-col items-center gap-1 w-full">
+    <div class="flex flex-col items-center gap-1.5 w-full px-1">
       <!-- Explorer -->
       <button
-        class="relative flex h-9 w-9 items-center justify-center rounded text-text-muted transition-colors hover:bg-bg-elevated hover:text-text-primary"
-        :class="activePanel === 'explorer' && 'bg-bg-elevated text-text-primary after:absolute after:left-0 after:top-2 after:bottom-2 after:w-0.5 after:bg-accent after:rounded-r'"
+        class="rail-btn relative"
+        :class="activePanel === 'explorer' ? 'rail-btn--active' : ''"
         title="Explorer"
         @click="toggle('explorer')"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <span v-if="activePanel === 'explorer'" class="rail-indicator" />
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="1" width="7" height="4" rx="1" />
           <rect x="2" y="6" width="12" height="9" rx="1" />
         </svg>
@@ -39,12 +40,13 @@ function toggle(panel: Panel): void {
 
       <!-- History -->
       <button
-        class="relative flex h-9 w-9 items-center justify-center rounded text-text-muted transition-colors hover:bg-bg-elevated hover:text-text-primary"
-        :class="activePanel === 'history' && 'bg-bg-elevated text-text-primary after:absolute after:left-0 after:top-2 after:bottom-2 after:w-0.5 after:bg-accent after:rounded-r'"
-        title="History (em breve)"
+        class="rail-btn relative"
+        :class="activePanel === 'history' ? 'rail-btn--active' : ''"
+        title="History"
         @click="toggle('history')"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <span v-if="activePanel === 'history'" class="rail-indicator" />
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="8" cy="8" r="6" />
           <path d="M8 5v3.5l2 2" />
         </svg>
@@ -52,12 +54,13 @@ function toggle(panel: Panel): void {
 
       <!-- Snippets -->
       <button
-        class="relative flex h-9 w-9 items-center justify-center rounded text-text-muted transition-colors hover:bg-bg-elevated hover:text-text-primary"
-        :class="activePanel === 'snippets' && 'bg-bg-elevated text-text-primary after:absolute after:left-0 after:top-2 after:bottom-2 after:w-0.5 after:bg-accent after:rounded-r'"
-        title="Snippets (em breve)"
+        class="rail-btn relative"
+        :class="activePanel === 'snippets' ? 'rail-btn--active' : ''"
+        title="Snippets"
         @click="toggle('snippets')"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <span v-if="activePanel === 'snippets'" class="rail-indicator" />
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M5 4l-3 4 3 4M11 4l3 4-3 4M9.5 2l-3 12" />
         </svg>
       </button>
@@ -65,14 +68,14 @@ function toggle(panel: Panel): void {
 
     <div class="flex-1" />
 
-    <!-- Settings -->
-    <div class="flex flex-col items-center gap-1 w-full">
+    <!-- Bottom items -->
+    <div class="flex flex-col items-center gap-1.5 w-full px-1">
       <button
-        class="flex h-9 w-9 items-center justify-center rounded text-text-muted transition-colors hover:bg-bg-elevated hover:text-text-primary"
-        title="Settings (em breve)"
+        class="rail-btn"
+        title="Settings"
         @click="emit('open-settings')"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="8" cy="8" r="2" />
           <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" />
         </svg>
@@ -80,3 +83,33 @@ function toggle(panel: Panel): void {
     </div>
   </div>
 </template>
+
+<style scoped>
+.rail-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: background 0.1s, color 0.1s;
+}
+.rail-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+.rail-btn--active {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+.rail-indicator {
+  position: absolute;
+  left: -1px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--neon-blue);
+  border-radius: 0 2px 2px 0;
+}
+</style>
