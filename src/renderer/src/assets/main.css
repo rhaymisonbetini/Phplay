@@ -5,47 +5,68 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Design Tokens (CSS custom properties) ─────────────────────────────── */
+/* ── Design Tokens — Dracula Neon (overridden at runtime by theme-provider) ── */
 :root {
   /* Background layers */
-  --bg-base: #0f0f10;
-  --bg-app: #18181b;
-  --bg-surface: #1e1e21;
-  --bg-elevated: #27272a;
-  --bg-overlay: #2d2d30;
+  --bg-base:     #161B22;
+  --bg-app:      #161B22;
+  --bg-surface:  #1E2430;
+  --bg-elevated: #202938;
+  --bg-overlay:  #243042;
 
-  /* Border */
-  --border-subtle: #2a2a2d;
-  --border-default: #3f3f46;
-  --border-strong: #52525b;
+  /* Borders */
+  --border-subtle:  #1D2635;
+  --border-default: #253043;
+  --border-strong:  #2E3D55;
 
   /* Text */
-  --text-primary: #f4f4f5;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --text-disabled: #52525b;
+  --text-primary:   #E6EDF3;
+  --text-secondary: #9BA7B4;
+  --text-muted:     #6B7C8E;
+  --text-disabled:  #435060;
 
-  /* Accent */
-  --accent: #10b981;
-  --accent-hover: #059669;
-  --accent-active: #047857;
+  /* Accent — neon blue */
+  --accent:       #00D8FF;
+  --accent-hover: #00C3E6;
+
+  /* Neon colors */
+  --neon-blue:   #00D8FF;
+  --neon-purple: #BD93F9;
+  --neon-green:  #50FA7B;
 
   /* State */
-  --success: #22c55e;
-  --success-bg: #052e16;
-  --error: #f43f5e;
-  --error-bg: #2d0a14;
-  --warning: #f59e0b;
-  --warning-bg: #2d1a02;
-  --info: #0ea5e9;
-  --info-bg: #082032;
+  --success: #50FA7B;
+  --error:   #FF5555;
+  --warning: #FFB86C;
+  --info:    #00D8FF;
+
+  /* Radii */
+  --radius-panel:  14px;
+  --radius-button: 10px;
+  --radius-icon:   12px;
+  --radius-sm:     6px;
+
+  /* Glow shadows */
+  --shadow-neon-blue:   0 0 0 1px rgba(0,216,255,0.15), 0 0 12px rgba(0,216,255,0.08);
+  --shadow-neon-purple: 0 0 0 1px rgba(189,147,249,0.15), 0 0 12px rgba(189,147,249,0.08);
+  --shadow-neon-green:  0 0 0 1px rgba(80,250,123,0.15), 0 0 12px rgba(80,250,123,0.08);
+
+  /* Spacing scale */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
 
   /* Layout */
-  --titlebar-height: 32px;
-  --tabbar-height: 32px;
-  --statusbar-height: 24px;
-  --sidebar-width: 44px;
-  --panel-header-height: 32px;
+  --titlebar-height:    32px;
+  --tabbar-height:      36px;
+  --statusbar-height:   24px;
+  --sidebar-width:      44px;
+  --panel-header-height: 34px;
 }
 
 /* ── Base resets ───────────────────────────────────────────────────────── */
@@ -65,17 +86,18 @@ body,
 }
 
 body {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: var(--bg-app);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* ── Custom scrollbars ─────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -108,6 +130,18 @@ body {
   background-color: var(--bg-surface) !important;
 }
 
+/* Suggest widget — Dracula Neon */
+.monaco-editor .suggest-widget {
+  border-radius: var(--radius-sm) !important;
+  border-color: var(--border-default) !important;
+}
+
+/* Hover widget */
+.monaco-editor .monaco-hover {
+  border-radius: var(--radius-sm) !important;
+  border-color: var(--border-default) !important;
+}
+
 /* ── Utility classes ───────────────────────────────────────────────────── */
 @layer utilities {
   .drag-region {
@@ -119,52 +153,85 @@ body {
   }
 
   .panel-header {
-    @apply flex h-8 shrink-0 items-center border-b border-border bg-bg-elevated/50 px-3;
+    display: flex;
+    align-items: center;
     height: var(--panel-header-height);
+    padding: 0 var(--space-3);
+    border-bottom: 1px solid var(--border-subtle);
+    background: color-mix(in srgb, var(--bg-elevated) 50%, transparent);
+    flex-shrink: 0;
   }
 
   .status-item {
-    @apply flex items-center gap-1.5 text-xs text-text-secondary transition-colors duration-fast;
+    @apply flex items-center gap-1.5 text-xs transition-colors duration-fast;
+    color: var(--text-secondary);
   }
 
   .status-item-btn {
-    @apply status-item cursor-pointer rounded px-1.5 py-0.5 hover:bg-bg-elevated hover:text-text-primary;
+    @apply status-item cursor-pointer rounded px-1.5 py-0.5;
+  }
+  .status-item-btn:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
   }
 
   .badge {
     @apply inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-medium;
   }
 
-  .badge-success {
-    @apply badge bg-success/10 text-success;
-  }
-
-  .badge-error {
-    @apply badge bg-error/10 text-error;
-  }
-
-  .badge-warning {
-    @apply badge bg-warning/10 text-warning;
-  }
-
-  .badge-info {
-    @apply badge bg-info/10 text-info;
-  }
+  .badge-success { @apply badge; background: rgba(80,250,123,0.12); color: var(--neon-green); }
+  .badge-error   { @apply badge; background: rgba(255,85,85,0.12); color: var(--error); }
+  .badge-warning { @apply badge; background: rgba(255,184,108,0.12); color: var(--warning); }
+  .badge-info    { @apply badge; background: rgba(0,216,255,0.10); color: var(--neon-blue); }
 
   .btn-primary {
-    @apply rounded bg-accent px-3 py-1 text-xs font-medium text-bg-base transition-colors duration-fast hover:bg-accent-600 disabled:cursor-not-allowed disabled:opacity-40 active:bg-accent-700;
+    @apply rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-fast;
+    background: var(--neon-blue);
+    color: var(--bg-base);
+    border-radius: var(--radius-button);
+  }
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    box-shadow: var(--shadow-neon-blue);
+    transform: translateY(-1px);
+  }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 
   .btn-ghost {
-    @apply rounded px-2 py-1 text-xs text-text-muted transition-colors duration-fast hover:bg-bg-elevated hover:text-text-primary;
+    @apply rounded px-2 py-1 text-xs transition-colors duration-fast;
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+  }
+  .btn-ghost:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+  }
+
+  /* Neon glow focus ring */
+  .neon-focus:focus-visible {
+    outline: none;
+    box-shadow: var(--shadow-neon-blue);
   }
 }
 
-/* ── Spinner animation ─────────────────────────────────────────────────── */
+/* ── Animations ────────────────────────────────────────────────────────── */
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes neon-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
 }
 
 .spinner {
@@ -172,7 +239,26 @@ body {
   width: 12px;
   height: 12px;
   border: 2px solid var(--border-default);
-  border-top-color: var(--accent);
+  border-top-color: var(--neon-blue);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-surface) 25%,
+    var(--bg-elevated) 50%,
+    var(--bg-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
