@@ -70,6 +70,10 @@ declare global {
       lspHover: (uri: string, line: number, character: number) => Promise<unknown>
       lspSignatureHelp: (uri: string, line: number, character: number) => Promise<unknown>
       lspPathToUri: (path: string) => Promise<string>
+      // History
+      historyList: (projectPath: string) => Promise<HistoryEntry[]>
+      historyRemove: (projectPath: string, id: string) => Promise<void>
+      historyToggleFavorite: (projectPath: string, id: string) => Promise<boolean>
       onMenuOpenProject: (cb: () => void) => void
     }
   }
@@ -80,4 +84,13 @@ export interface RecentProject {
   name: string
   framework: string
   openedAt: number
+}
+
+export interface HistoryEntry {
+  id: string
+  code: string
+  executedAt: string
+  projectPath: string
+  durationMs: number
+  favorite: boolean
 }

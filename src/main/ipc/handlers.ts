@@ -10,6 +10,7 @@ import { LanguageServerManager } from '../lsp/LanguageServerManager'
 import { Logger } from '../storage/Logger'
 import { WorkspaceService } from '../workspace/WorkspaceService'
 import { LaravelDiscoveryService } from '../laravel/LaravelDiscoveryService'
+import { HistoryService } from '../history/HistoryService'
 import { ok, fail } from './types'
 import type { ExecutionContext } from '../executor/types'
 
@@ -17,6 +18,7 @@ const phpDetector = new PhpDetector()
 const executionService = new PhpExecutionService()
 const frameworkDetector = new FrameworkDetector()
 const laravelDiscovery = new LaravelDiscoveryService()
+const historyService = new HistoryService()
 const lspManager = new LanguageServerManager()
 let recentProjects: RecentProjects
 let workspaceService: WorkspaceService
@@ -50,7 +52,34 @@ export function registerIpcHandlers(): void {
     if (!event.sender.isDestroyed()) {
       event.sender.send('execution:started', { executionId })
     }
-    return result
+    const execResult = await result
+    if (context.projectPath && workspaceService) {
+      const ws = workspaceService.get(context.projectPath)
+      historyService.add(ws.storagePath, {
+        code,
+        projectPath: context.projectPath,
+        durationMs: execResult.executionTimeMs
+      }).catch(() => undefined)
+    }
+    return execResult
+  })
+
+  ipcMain.handle('history:list', async (_event, projectPath: string) => {
+    if (!workspaceService) return []
+    const ws = workspaceService.get(projectPath)
+    return historyService.list(ws.storagePath)
+  })
+
+  ipcMain.handle('history:remove', async (_event, projectPath: string, id: string) => {
+    if (!workspaceService) return
+    const ws = workspaceService.get(projectPath)
+    await historyService.remove(ws.storagePath, id)
+  })
+
+  ipcMain.handle('history:toggleFavorite', async (_event, projectPath: string, id: string) => {
+    if (!workspaceService) return false
+    const ws = workspaceService.get(projectPath)
+    return historyService.toggleFavorite(ws.storagePath, id)
   })
 
   ipcMain.handle('execution:cancel', (_event, executionId: string) => {

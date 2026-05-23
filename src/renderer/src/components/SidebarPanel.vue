@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { RecentProject } from '../types/electron'
+import HistorySidebar from './sidebar/HistorySidebar.vue'
 
-defineProps<{
+const props = defineProps<{
   panel: 'explorer' | 'history' | 'snippets'
   currentProjectPath?: string | null
   currentProjectName?: string | null
@@ -13,8 +15,13 @@ const emit = defineEmits<{
   'open-project': []
   'open-recent': [path: string]
   'remove-recent': [path: string]
+  'load-snippet': [code: string]
   close: []
 }>()
+
+const historySidebar = ref<InstanceType<typeof HistorySidebar> | null>(null)
+
+defineExpose({ reloadHistory: () => historySidebar.value?.reload() })
 
 const frameworkColor: Record<string, string> = {
   laravel: '#f87171',
@@ -131,17 +138,20 @@ function formatDate(ts: number): string {
       </div>
     </template>
 
-    <!-- ── HISTORY / SNIPPETS — coming soon ── -->
+    <!-- ── HISTORY ── -->
+    <template v-else-if="panel === 'history'">
+      <HistorySidebar
+        ref="historySidebar"
+        :project-path="props.currentProjectPath ?? null"
+        @load-snippet="emit('load-snippet', $event)"
+      />
+    </template>
+
+    <!-- ── SNIPPETS — coming soon ── -->
     <template v-else>
       <div class="flex flex-1 flex-col items-center justify-center gap-2 text-center px-4">
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" class="text-text-disabled">
-          <template v-if="panel === 'history'">
-            <circle cx="14" cy="14" r="11" />
-            <path d="M14 8v6.5l3.5 3.5" />
-          </template>
-          <template v-else>
-            <path d="M9 6l-5 8 5 8M19 6l5 8-5 8M16 4l-4 20" />
-          </template>
+          <path d="M9 6l-5 8 5 8M19 6l5 8-5 8M16 4l-4 20" />
         </svg>
         <p class="text-xs text-text-disabled">Em breve</p>
       </div>
