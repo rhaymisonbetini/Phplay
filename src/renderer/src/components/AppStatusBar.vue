@@ -76,6 +76,7 @@ const currentPhpVersion = computed(() => {
 
 const isIndexing = computed(() => props.hasProject && (props.lspState === 'initializing' || props.lspState === 'starting'))
 const isLspError = computed(() => props.lspState === 'error')
+const isLspReady = computed(() => props.hasProject && props.lspState === 'ready')
 </script>
 
 <template>
@@ -169,7 +170,18 @@ const isLspError = computed(() => props.lspState === 'error')
         <span class="text-2xs">LSP error</span>
       </span>
 
-      <span v-if="(isIndexing || isLspError) && projectPath" class="text-border-strong">·</span>
+      <!-- LSP ready indicator -->
+      <span
+        v-if="isLspReady"
+        class="status-item gap-1 status-ready"
+        title="PHP Intelligence pronto"
+        style="color: var(--neon-green)"
+      >
+        <span class="h-1.5 w-1.5 rounded-full" style="background: var(--neon-green)" />
+        <span class="text-2xs">PHP ✓</span>
+      </span>
+
+      <span v-if="(isIndexing || isLspError || isLspReady) && projectPath" class="text-border-strong">·</span>
 
       <!-- Saved indicator -->
       <span
