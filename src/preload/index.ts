@@ -84,6 +84,16 @@ const api = {
 
   lspPathToUri: (path: string): Promise<string> => ipcRenderer.invoke('lsp:pathToUri', path),
 
+  // History
+  historyList: (projectPath: string): Promise<unknown[]> =>
+    ipcRenderer.invoke('history:list', projectPath),
+
+  historyRemove: (projectPath: string, id: string): Promise<void> =>
+    ipcRenderer.invoke('history:remove', projectPath, id),
+
+  historyToggleFavorite: (projectPath: string, id: string): Promise<boolean> =>
+    ipcRenderer.invoke('history:toggleFavorite', projectPath, id),
+
   // Menu events from main process
   onMenuOpenProject: (cb: () => void): void => {
     ipcRenderer.on('menu:open-project', cb)

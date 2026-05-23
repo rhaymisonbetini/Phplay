@@ -43,6 +43,7 @@ const recentProjects = ref<RecentProject[]>([])
 const lspReady = ref(false)
 const lspState = ref<string>('stopped')
 const activeSidebarPanel = ref<SidebarPanelType | null>(null)
+const sidebarPanelRef = ref<InstanceType<typeof SidebarPanel> | null>(null)
 const activeExecutionId = ref<string | null>(null)
 const liveOutput = ref<string>('')
 const showCommandPalette = ref(false)
@@ -113,6 +114,7 @@ async function runCode(): Promise<void> {
     })
     sessionStore.setOutput(session.id, result)
     lastMetrics.value = { timeMs: result.executionTimeMs, memKb: result.memoryUsedKb }
+    sidebarPanelRef.value?.reloadHistory()
   } catch (err) {
     sessionStore.setOutput(session.id, {
       stdout: '',
@@ -132,6 +134,12 @@ async function stopExecution(): Promise<void> {
     await window.electronAPI.cancelExecution(activeExecutionId.value)
     activeExecutionId.value = null
   }
+}
+
+function loadSnippetFromHistory(code: string): void {
+  const session = activeSession.value
+  if (!session) return
+  sessionStore.setCode(session.id, code)
 }
 
 async function openProject(): Promise<void> {
@@ -242,6 +250,7 @@ useKeyboardShortcuts([
       <!-- Sidebar panel (Explorer / History / Snippets) -->
       <SidebarPanel
         v-if="activeSidebarPanel"
+        ref="sidebarPanelRef"
         :panel="activeSidebarPanel"
         :current-project-path="currentPath"
         :current-project-name="currentName"
@@ -250,6 +259,7 @@ useKeyboardShortcuts([
         @open-project="openProject"
         @open-recent="openRecentProject"
         @remove-recent="removeRecentProject"
+        @load-snippet="loadSnippetFromHistory"
         @close="activeSidebarPanel = null"
       />
 
