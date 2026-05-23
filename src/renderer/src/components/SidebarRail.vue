@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-type Panel = 'explorer' | 'history' | 'snippets'
+type Panel = 'explorer' | 'history' | 'snippets' | 'themes'
 
 const emit = defineEmits<{
   'panel-change': [panel: Panel | null]
-  'open-settings': []
 }>()
 
 const activePanel = ref<Panel | null>(null)
@@ -71,13 +70,16 @@ function toggle(panel: Panel): void {
     <!-- Bottom items -->
     <div class="flex flex-col items-center gap-1.5 w-full px-1">
       <button
-        class="rail-btn"
-        title="Settings"
-        @click="emit('open-settings')"
+        class="rail-btn relative"
+        :class="activePanel === 'themes' ? 'rail-btn--active' : ''"
+        title="Themes"
+        @click="toggle('themes')"
       >
+        <span v-if="activePanel === 'themes'" class="rail-indicator" />
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="8" cy="8" r="2" />
-          <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" />
+          <circle cx="8" cy="8" r="6" />
+          <circle cx="8" cy="8" r="2.5" />
+          <path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14" />
         </svg>
       </button>
     </div>
