@@ -27,7 +27,7 @@ type ToastState =
   | { type: 'not-php'; path: string }
   | null
 
-type SidebarPanelType = 'explorer' | 'history' | 'snippets'
+type SidebarPanelType = 'explorer' | 'history' | 'snippets' | 'themes'
 
 const sessionStore = useSessionStore()
 const projectStore = useProjectStore()
@@ -244,7 +244,6 @@ useKeyboardShortcuts([
     <div class="flex flex-1 overflow-hidden">
       <SidebarRail
         @panel-change="onSidebarPanelChange"
-        @open-settings="() => {}"
       />
 
       <!-- Sidebar panel (Explorer / History / Snippets) -->

@@ -1,11 +1,15 @@
 import { ref } from 'vue'
 import type { ThemeVariant, Theme } from './theme'
 import { draculaNeon } from './dracula-neon'
+import { midnight } from './midnight'
+import { nord } from './nord'
 
 const STORAGE_KEY = 'phplay-theme'
 
 const registry: Record<string, Theme> = {
-  'dracula-neon': draculaNeon
+  'dracula-neon': draculaNeon,
+  'midnight': midnight,
+  'nord': nord,
 }
 
 const current = ref<ThemeVariant>('dracula-neon')
@@ -34,5 +38,9 @@ export function useTheme() {
     apply(saved ?? 'dracula-neon')
   }
 
-  return { current, apply, init }
+  function list(): Theme[] {
+    return Object.values(registry)
+  }
+
+  return { current, apply, init, list }
 }
