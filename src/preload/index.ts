@@ -12,12 +12,16 @@ const api = {
   cancelExecution: (executionId: string): Promise<boolean> =>
     ipcRenderer.invoke('execution:cancel', executionId),
 
-  onExecutionOutput: (cb: (payload: { executionId: string; chunk: string; stream: 'stdout' | 'stderr' }) => void): void => {
-    ipcRenderer.on('execution:output', (_event, payload) => cb(payload))
+  onExecutionOutput: (cb: (payload: { executionId: string; chunk: string; stream: 'stdout' | 'stderr' }) => void): (() => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, payload: { executionId: string; chunk: string; stream: 'stdout' | 'stderr' }) => cb(payload)
+    ipcRenderer.on('execution:output', handler)
+    return () => ipcRenderer.removeListener('execution:output', handler)
   },
 
-  onExecutionStarted: (cb: (payload: { executionId: string }) => void): void => {
-    ipcRenderer.on('execution:started', (_event, payload) => cb(payload))
+  onExecutionStarted: (cb: (payload: { executionId: string }) => void): (() => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, payload: { executionId: string }) => cb(payload)
+    ipcRenderer.on('execution:started', handler)
+    return () => ipcRenderer.removeListener('execution:started', handler)
   },
 
   openProjectDialog: (): Promise<string | null> => ipcRenderer.invoke('project:open-dialog'),

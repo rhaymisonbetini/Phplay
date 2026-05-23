@@ -67,11 +67,21 @@ onMounted(async () => {
   window.electronAPI.onExecutionStarted(({ executionId }) => {
     activeExecutionId.value = executionId
     liveOutput.value = ''
+    stdoutBuffer = ''
   })
 
-  // Accumulate streaming output chunks
+  // Accumulate streaming output chunks via RAF to avoid per-byte DOM updates
+  let stdoutBuffer = ''
+  let rafId: number | null = null
   window.electronAPI.onExecutionOutput(({ chunk, stream }) => {
-    if (stream === 'stdout') liveOutput.value += chunk
+    if (stream !== 'stdout') return
+    stdoutBuffer += chunk
+    if (rafId !== null) return
+    rafId = requestAnimationFrame(() => {
+      rafId = null
+      liveOutput.value += stdoutBuffer
+      stdoutBuffer = ''
+    })
   })
 
   try {
