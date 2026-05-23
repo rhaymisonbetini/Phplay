@@ -4,9 +4,12 @@ import type { RecentProject } from '../types/electron'
 import HistorySidebar from './sidebar/HistorySidebar.vue'
 import ThemeSidebar from './sidebar/ThemeSidebar.vue'
 import LogsSidebar from './sidebar/LogsSidebar.vue'
+import AISidebar from './sidebar/AISidebar.vue'
 
 const props = defineProps<{
-  panel: 'explorer' | 'history' | 'snippets' | 'themes' | 'logs'
+  panel: 'explorer' | 'history' | 'snippets' | 'themes' | 'logs' | 'ai'
+  currentCode?: string
+  lastError?: string
   currentProjectPath?: string | null
   currentProjectName?: string | null
   currentFramework?: string
@@ -46,7 +49,7 @@ function formatDate(ts: number): string {
     <!-- Panel header -->
     <div class="flex items-center justify-between px-3 py-2 border-b border-border-subtle">
       <span class="text-2xs font-semibold uppercase tracking-widest text-text-disabled">
-        {{ panel === 'explorer' ? 'Explorer' : panel === 'history' ? 'History' : panel === 'themes' ? 'Theme' : panel === 'logs' ? 'Logs' : 'Snippets' }}
+        {{ panel === 'explorer' ? 'Explorer' : panel === 'history' ? 'History' : panel === 'themes' ? 'Theme' : panel === 'logs' ? 'Logs' : panel === 'ai' ? 'AI Assistant' : 'Snippets' }}
       </span>
       <button
         class="rounded p-0.5 text-text-disabled hover:text-text-muted transition-colors"
@@ -157,6 +160,11 @@ function formatDate(ts: number): string {
     <!-- ── LOGS ── -->
     <template v-else-if="panel === 'logs'">
       <LogsSidebar />
+    </template>
+
+    <!-- ── AI ASSISTANT ── -->
+    <template v-else-if="panel === 'ai'">
+      <AISidebar :code="props.currentCode" :last-error="props.lastError" />
     </template>
 
     <!-- ── SNIPPETS — coming soon ── -->

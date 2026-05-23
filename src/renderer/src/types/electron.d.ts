@@ -75,6 +75,13 @@ declare global {
       historyRemove: (projectPath: string, id: string) => Promise<void>
       historyToggleFavorite: (projectPath: string, id: string) => Promise<boolean>
       onMenuOpenProject: (cb: () => void) => void
+      // AI Assistant
+      aiSetKey: (key: string) => Promise<void>
+      aiGetKey: () => Promise<string>
+      aiChat: (messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string) => Promise<unknown>
+      onAiChunk: (cb: (payload: { text: string }) => void) => (() => void)
+      onAiDone: (cb: () => void) => (() => void)
+      onAiError: (cb: (payload: { message: string }) => void) => (() => void)
     }
   }
 }
