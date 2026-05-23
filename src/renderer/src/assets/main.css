@@ -10,6 +10,9 @@
 /* Monaco Editor base styles — must come before @tailwind directives */
 @import 'monaco-editor/min/vs/editor/editor.main.css';
 
+/* Microinteractions */
+@import './animations.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

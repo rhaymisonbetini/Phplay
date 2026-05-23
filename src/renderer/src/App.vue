@@ -256,23 +256,25 @@ useKeyboardShortcuts([
         @panel-change="onSidebarPanelChange"
       />
 
-      <!-- Sidebar panel (Explorer / History / Snippets) -->
-      <SidebarPanel
-        v-if="activeSidebarPanel"
-        ref="sidebarPanelRef"
-        :panel="activeSidebarPanel"
-        :current-project-path="currentPath"
-        :current-project-name="currentName"
-        :current-framework="projectStore.framework"
-        :recent-projects="recentProjects"
-        :current-code="activeSession?.code"
-        :last-error="activeSession?.output?.stderr || undefined"
-        @open-project="openProject"
-        @open-recent="openRecentProject"
-        @remove-recent="removeRecentProject"
-        @load-snippet="loadSnippetFromHistory"
-        @close="activeSidebarPanel = null"
-      />
+      <!-- Sidebar panel (Explorer / History / Snippets / etc.) -->
+      <Transition name="sidebar-slide">
+        <SidebarPanel
+          v-if="activeSidebarPanel"
+          ref="sidebarPanelRef"
+          :panel="activeSidebarPanel"
+          :current-project-path="currentPath"
+          :current-project-name="currentName"
+          :current-framework="projectStore.framework"
+          :recent-projects="recentProjects"
+          :current-code="activeSession?.code"
+          :last-error="activeSession?.output?.stderr || undefined"
+          @open-project="openProject"
+          @open-recent="openRecentProject"
+          @remove-recent="removeRecentProject"
+          @load-snippet="loadSnippetFromHistory"
+          @close="activeSidebarPanel = null"
+        />
+      </Transition>
 
       <!-- Welcome screen: always show when no project is open -->
       <WelcomeScreen
