@@ -1,60 +1,7 @@
 import { SmartPhpRuntime } from '../runtime/SmartPhpRuntime'
+import { PHP_BASE_HELPERS } from '../runtime/php-helpers'
 
-const PHP_HELPERS = `
-if (!function_exists('d')) {
-    function d(...$__args) {
-        foreach ($__args as $__v) { var_dump($__v); }
-    }
-}
-if (!function_exists('dd')) {
-    function dd(...$__args) {
-        foreach ($__args as $__v) { var_dump($__v); }
-        exit(0);
-    }
-}
-if (!function_exists('phplay_json')) {
-    function phplay_json($__v) {
-        echo json_encode($__v, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    }
-}
-if (!function_exists('phplay_inspect')) {
-    function phplay_inspect($__v, $__depth = 0) {
-        if ($__depth > 5) return '...';
-        if (is_null($__v)) return 'null';
-        if (is_bool($__v)) return $__v ? 'true' : 'false';
-        if (is_string($__v)) return '"' . addslashes($__v) . '"';
-        if (is_int($__v) || is_float($__v)) return (string)$__v;
-        if (is_array($__v)) {
-            if (empty($__v)) return '[]';
-            $items = [];
-            foreach ($__v as $k => $val) {
-                $items[] = (is_int($k) ? '' : '"' . $k . '" => ') . phplay_inspect($val, $__depth + 1);
-            }
-            return count($__v) <= 5 ? '[' . implode(', ', $items) . ']' : "Array(" . count($__v) . ")";
-        }
-        if (is_object($__v)) {
-            $class = get_class($__v);
-            if (method_exists($__v, 'toArray')) {
-                return $class . ' ' . json_encode($__v->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            }
-            $props = [];
-            foreach ((array)$__v as $k => $val) {
-                $props[] = ltrim($k, "\\0*\\0") . ': ' . phplay_inspect($val, $__depth + 1);
-            }
-            return $class . ' { ' . implode(', ', $props) . ' }';
-        }
-        return var_export($__v, true);
-    }
-}
-if (!function_exists('phplay_render')) {
-    function phplay_render($__v) {
-        if ($__v === null) { echo "null" . PHP_EOL; return; }
-        if (is_bool($__v)) { echo ($__v ? 'true' : 'false') . PHP_EOL; return; }
-        if (is_string($__v) || is_int($__v) || is_float($__v)) { echo $__v . PHP_EOL; return; }
-        echo phplay_inspect($__v) . PHP_EOL;
-    }
-}
-`
+const PHP_HELPERS = PHP_BASE_HELPERS
 
 const runtime = new SmartPhpRuntime()
 
