@@ -19,6 +19,7 @@ import PhpConfigModal from './components/PhpConfigModal.vue'
 import ProjectDetectionToast from './components/ProjectDetectionToast.vue'
 import CommandPalette from './components/CommandPalette.vue'
 import type { ExecutionResult, Framework, RecentProject } from './types/electron'
+import { useAppLogs } from './composables/useAppLogs'
 
 type ToastState =
   | { type: 'detecting' }
@@ -27,7 +28,7 @@ type ToastState =
   | { type: 'not-php'; path: string }
   | null
 
-type SidebarPanelType = 'explorer' | 'history' | 'snippets' | 'themes'
+type SidebarPanelType = 'explorer' | 'history' | 'snippets' | 'themes' | 'logs'
 
 const sessionStore = useSessionStore()
 const projectStore = useProjectStore()
@@ -53,15 +54,17 @@ const currentPath = computed(() => projectStore.currentProject?.path ?? null)
 const currentName = computed(() => projectStore.currentProject?.name ?? null)
 
 const { isSaved, restore } = useSnippetPersistence(sessions, currentPath)
+const { add: addLog } = useAppLogs()
 
 onMounted(async () => {
   // Listen for File > Open Project from Electron menu
   window.electronAPI.onMenuOpenProject(() => openProject())
 
   // Track real LSP state from main process
-  window.electronAPI.onLspStateChanged(({ state }) => {
+  window.electronAPI.onLspStateChanged(({ state, message }) => {
     lspState.value = state
     lspReady.value = state === 'ready'
+    addLog({ category: 'lsp', level: state === 'error' ? 'error' : 'info', message: `state → ${state}`, detail: message })
   })
 
   // Track active execution ID for cancel support
@@ -69,6 +72,7 @@ onMounted(async () => {
     activeExecutionId.value = executionId
     liveOutput.value = ''
     stdoutBuffer = ''
+    addLog({ category: 'execution', level: 'info', message: `started`, detail: executionId })
   })
 
   // Accumulate streaming output chunks via RAF to avoid per-byte DOM updates
@@ -115,6 +119,12 @@ async function runCode(): Promise<void> {
     sessionStore.setOutput(session.id, result)
     lastMetrics.value = { timeMs: result.executionTimeMs, memKb: result.memoryUsedKb }
     sidebarPanelRef.value?.reloadHistory()
+    addLog({
+      category: result.exitCode !== 0 ? 'error' : 'execution',
+      level: result.exitCode !== 0 ? 'error' : 'info',
+      message: `completed in ${result.executionTimeMs}ms — exit ${result.exitCode}`,
+      detail: result.stderr ? result.stderr.slice(0, 200) : undefined
+    })
   } catch (err) {
     sessionStore.setOutput(session.id, {
       stdout: '',

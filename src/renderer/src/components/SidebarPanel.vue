@@ -3,9 +3,10 @@ import { ref } from 'vue'
 import type { RecentProject } from '../types/electron'
 import HistorySidebar from './sidebar/HistorySidebar.vue'
 import ThemeSidebar from './sidebar/ThemeSidebar.vue'
+import LogsSidebar from './sidebar/LogsSidebar.vue'
 
 const props = defineProps<{
-  panel: 'explorer' | 'history' | 'snippets' | 'themes'
+  panel: 'explorer' | 'history' | 'snippets' | 'themes' | 'logs'
   currentProjectPath?: string | null
   currentProjectName?: string | null
   currentFramework?: string
@@ -45,7 +46,7 @@ function formatDate(ts: number): string {
     <!-- Panel header -->
     <div class="flex items-center justify-between px-3 py-2 border-b border-border-subtle">
       <span class="text-2xs font-semibold uppercase tracking-widest text-text-disabled">
-        {{ panel === 'explorer' ? 'Explorer' : panel === 'history' ? 'History' : panel === 'themes' ? 'Theme' : 'Snippets' }}
+        {{ panel === 'explorer' ? 'Explorer' : panel === 'history' ? 'History' : panel === 'themes' ? 'Theme' : panel === 'logs' ? 'Logs' : 'Snippets' }}
       </span>
       <button
         class="rounded p-0.5 text-text-disabled hover:text-text-muted transition-colors"
@@ -151,6 +152,11 @@ function formatDate(ts: number): string {
     <!-- ── THEMES ── -->
     <template v-else-if="panel === 'themes'">
       <ThemeSidebar />
+    </template>
+
+    <!-- ── LOGS ── -->
+    <template v-else-if="panel === 'logs'">
+      <LogsSidebar />
     </template>
 
     <!-- ── SNIPPETS — coming soon ── -->
