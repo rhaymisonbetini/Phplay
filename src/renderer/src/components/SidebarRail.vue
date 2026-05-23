@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-type Panel = 'explorer' | 'history' | 'snippets' | 'themes'
+type Panel = 'explorer' | 'history' | 'snippets' | 'themes' | 'logs'
 
 const emit = defineEmits<{
   'panel-change': [panel: Panel | null]
@@ -61,6 +61,20 @@ function toggle(panel: Panel): void {
         <span v-if="activePanel === 'snippets'" class="rail-indicator" />
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M5 4l-3 4 3 4M11 4l3 4-3 4M9.5 2l-3 12" />
+        </svg>
+      </button>
+
+      <!-- Logs -->
+      <button
+        class="rail-btn relative"
+        :class="activePanel === 'logs' ? 'rail-btn--active' : ''"
+        title="Logs"
+        @click="toggle('logs')"
+      >
+        <span v-if="activePanel === 'logs'" class="rail-indicator" />
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="2" width="14" height="12" rx="2" />
+          <path d="M4 6h8M4 9h6M4 12h4" />
         </svg>
       </button>
     </div>
