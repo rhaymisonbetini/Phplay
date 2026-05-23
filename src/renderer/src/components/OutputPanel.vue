@@ -2,6 +2,8 @@
 import { computed, ref, watch, nextTick } from 'vue'
 import type { ExecutionResult } from '../types/electron'
 import { formatOutput, parsePhpError } from '../composables/useOutputFormatter'
+import { parseOutput, hasStructuredOutput } from '../composables/useOutputParser'
+import SmartOutput from './output/SmartOutput.vue'
 
 const props = defineProps<{
   result: ExecutionResult | null
@@ -67,6 +69,12 @@ const displayOutput = computed(() => {
 const formattedDisplay = computed(() => {
   if (!displayOutput.value) return null
   return formatOutput(displayOutput.value.text)
+})
+
+const parsedChunks = computed(() => {
+  const text = props.result?.stdout ?? ''
+  if (!hasStructuredOutput(text)) return null
+  return parseOutput(text)
 })
 
 async function copyOutput(): Promise<void> {
@@ -187,9 +195,20 @@ async function saveOutput(): Promise<void> {
           Use <strong>Save</strong> to get the full output.
         </div>
 
-        <!-- stdout (formatted) -->
+        <!-- stdout: structured (SmartOutput) -->
         <div
-          v-if="formattedDisplay && formattedDisplay.type !== 'empty'"
+          v-if="parsedChunks"
+          class="flex-1 overflow-auto p-4 select-text space-y-2"
+        >
+          <template v-for="(chunk, i) in parsedChunks" :key="i">
+            <SmartOutput v-if="chunk.kind === 'structured'" :data="chunk.data" />
+            <pre v-else class="output-pre whitespace-pre-wrap break-words text-xs text-text-primary">{{ chunk.content }}</pre>
+          </template>
+        </div>
+
+        <!-- stdout: plain text (formatted) -->
+        <div
+          v-else-if="formattedDisplay && formattedDisplay.type !== 'empty'"
           class="flex-1 overflow-auto p-4 select-text"
           v-html="formattedDisplay.html"
         />
