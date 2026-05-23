@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-type Panel = 'explorer' | 'history' | 'snippets' | 'themes' | 'logs'
+type Panel = 'explorer' | 'history' | 'snippets' | 'themes' | 'logs' | 'ai'
 
 const emit = defineEmits<{
   'panel-change': [panel: Panel | null]
@@ -83,6 +83,20 @@ function toggle(panel: Panel): void {
 
     <!-- Bottom items -->
     <div class="flex flex-col items-center gap-1.5 w-full px-1">
+      <!-- AI Assistant -->
+      <button
+        class="rail-btn relative"
+        :class="activePanel === 'ai' ? 'rail-btn--active' : ''"
+        title="AI Assistant"
+        @click="toggle('ai')"
+      >
+        <span v-if="activePanel === 'ai'" class="rail-indicator" />
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 1a6 6 0 0 1 6 6c0 2.4-1.4 4.5-3.5 5.5L11 15H5l.5-2.5A6 6 0 0 1 2 7a6 6 0 0 1 6-6z" />
+          <path d="M6 7h4M8 5v4" />
+        </svg>
+      </button>
+
       <button
         class="rail-btn relative"
         :class="activePanel === 'themes' ? 'rail-btn--active' : ''"

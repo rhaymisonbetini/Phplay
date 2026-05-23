@@ -28,7 +28,7 @@ type ToastState =
   | { type: 'not-php'; path: string }
   | null
 
-type SidebarPanelType = 'explorer' | 'history' | 'snippets' | 'themes' | 'logs'
+type SidebarPanelType = 'explorer' | 'history' | 'snippets' | 'themes' | 'logs' | 'ai'
 
 const sessionStore = useSessionStore()
 const projectStore = useProjectStore()
@@ -265,6 +265,8 @@ useKeyboardShortcuts([
         :current-project-name="currentName"
         :current-framework="projectStore.framework"
         :recent-projects="recentProjects"
+        :current-code="activeSession?.code"
+        :last-error="activeSession?.output?.stderr || undefined"
         @open-project="openProject"
         @open-recent="openRecentProject"
         @remove-recent="removeRecentProject"

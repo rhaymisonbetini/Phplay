@@ -97,6 +97,27 @@ const api = {
   // Menu events from main process
   onMenuOpenProject: (cb: () => void): void => {
     ipcRenderer.on('menu:open-project', cb)
+  },
+
+  // AI Assistant
+  aiSetKey: (key: string): Promise<void> => ipcRenderer.invoke('ai:setKey', key),
+  aiGetKey: (): Promise<string> => ipcRenderer.invoke('ai:getKey'),
+  aiChat: (messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string): Promise<unknown> =>
+    ipcRenderer.invoke('ai:chat', messages, systemPrompt),
+  onAiChunk: (cb: (payload: { text: string }) => void): (() => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, p: { text: string }) => cb(p)
+    ipcRenderer.on('ai:chunk', handler)
+    return () => ipcRenderer.removeListener('ai:chunk', handler)
+  },
+  onAiDone: (cb: () => void): (() => void) => {
+    const handler = () => cb()
+    ipcRenderer.on('ai:done', handler)
+    return () => ipcRenderer.removeListener('ai:done', handler)
+  },
+  onAiError: (cb: (payload: { message: string }) => void): (() => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, p: { message: string }) => cb(p)
+    ipcRenderer.on('ai:error', handler)
+    return () => ipcRenderer.removeListener('ai:error', handler)
   }
 }
 

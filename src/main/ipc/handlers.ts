@@ -11,6 +11,8 @@ import { Logger } from '../storage/Logger'
 import { WorkspaceService } from '../workspace/WorkspaceService'
 import { LaravelDiscoveryService } from '../laravel/LaravelDiscoveryService'
 import { HistoryService } from '../history/HistoryService'
+import { ClaudeClient } from '../ai/ClaudeClient'
+import type { AiMessage } from '../ai/ClaudeClient'
 import { ok, fail } from './types'
 import type { ExecutionContext } from '../executor/types'
 
@@ -255,4 +257,56 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('lsp:pathToUri', (_event, path: string) => pathToUri(path))
 
   app.on('before-quit', () => lspManager.stopAll())
+
+  // ── AI Assistant ─────────────────────────────────────────────────────────
+
+  const aiKeyFile = join(app.getPath('userData'), 'ai-key.json')
+
+  ipcMain.handle('ai:setKey', async (_event, key: string) => {
+    await writeFile(aiKeyFile, JSON.stringify({ key }), 'utf-8')
+  })
+
+  ipcMain.handle('ai:getKey', async () => {
+    try {
+      const raw = await readFile(aiKeyFile, 'utf-8')
+      return (JSON.parse(raw) as { key: string }).key
+    } catch {
+      return ''
+    }
+  })
+
+  ipcMain.handle('ai:chat', async (event, messages: AiMessage[], systemPrompt: string) => {
+    let key = ''
+    try {
+      const raw = await readFile(aiKeyFile, 'utf-8')
+      key = (JSON.parse(raw) as { key: string }).key
+    } catch {
+      return fail('NO_API_KEY', 'API key not configured')
+    }
+
+    if (!key) return fail('NO_API_KEY', 'API key not configured')
+
+    const client = new ClaudeClient(key)
+    client.streamChat(
+      messages,
+      systemPrompt,
+      (text) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('ai:chunk', { text })
+        }
+      },
+      () => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('ai:done')
+        }
+      },
+      (err) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('ai:error', { message: err.message })
+        }
+      }
+    )
+
+    return ok(true)
+  })
 }
