@@ -3,6 +3,7 @@ import { computed, ref, watch, nextTick } from 'vue'
 import type { ExecutionResult } from '../types/electron'
 import { formatOutput, parsePhpError } from '../composables/useOutputFormatter'
 import { parseOutput, hasStructuredOutput } from '../composables/useOutputParser'
+import { highlightOutput } from '../composables/useOutputHighlight'
 import SmartOutput from './output/SmartOutput.vue'
 
 const props = defineProps<{
@@ -222,7 +223,7 @@ async function saveOutput(): Promise<void> {
         >
           <template v-for="(chunk, i) in parsedChunks" :key="i">
             <SmartOutput v-if="chunk.kind === 'structured'" :data="chunk.data" />
-            <pre v-else class="output-pre whitespace-pre-wrap break-words text-xs text-text-primary">{{ chunk.content }}</pre>
+            <pre v-else class="output-pre" v-html="highlightOutput(chunk.content)" />
           </template>
         </div>
 
@@ -326,13 +327,22 @@ async function saveOutput(): Promise<void> {
   color: var(--text-primary, #e4e4e7);
 }
 
-:deep(.hl-key)   { color: var(--color-info,    #38bdf8); }
-:deep(.hl-str)   { color: var(--color-success, #4ade80); }
-:deep(.hl-num)   { color: var(--color-warning, #fb923c); }
-:deep(.hl-bool)  { color: #a78bfa; }
-:deep(.hl-null)  { color: var(--text-muted,   #71717a); font-style: italic; }
-:deep(.hl-type)  { color: var(--color-info,   #38bdf8); font-weight: 600; }
-:deep(.hl-brace) { color: var(--text-muted,   #71717a); }
+:deep(.hl-key)   { color: var(--neon-blue); }
+:deep(.hl-str)   { color: var(--neon-green); }
+:deep(.hl-num)   { color: #FFB86C; }
+:deep(.hl-bool)  { color: var(--neon-purple); }
+:deep(.hl-null)  { color: var(--text-muted); font-style: italic; }
+:deep(.hl-type)  { color: var(--neon-blue); font-weight: 600; }
+:deep(.hl-brace) { color: var(--text-muted); }
+
+/* Stack trace */
+:deep(.hl-trace-idx)   { color: var(--text-disabled); }
+:deep(.hl-trace-file)  { color: var(--neon-blue); }
+:deep(.hl-trace-paren) { color: var(--text-muted); }
+:deep(.hl-trace-call)  { color: var(--text-secondary); }
+:deep(.hl-trace-kw)    { color: var(--text-muted); font-style: italic; }
+:deep(.hl-error-class) { color: var(--error); font-weight: 700; }
+:deep(.hl-error-msg)   { color: rgba(255,85,85,0.85); }
 
 /* ── Type badges ─────────────────────────────────────────────────────────── */
 .output-type-badge {
