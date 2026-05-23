@@ -16,6 +16,7 @@ const emit = defineEmits<{ clear: [] }>()
 const outputContainer = ref<HTMLElement | null>(null)
 const stackExpanded = ref(false)
 const copyLabel = ref('Copy')
+const autoScrollPaused = ref(false)
 
 const hasOutput = computed(() => props.result !== null)
 const hasError = computed(
@@ -39,7 +40,18 @@ const formattedMemory = computed(() => {
   return kb >= 1024 ? `${(kb / 1024).toFixed(1)}MB` : `${kb}KB`
 })
 
+function isAtBottom(): boolean {
+  const el = outputContainer.value
+  if (!el) return true
+  return el.scrollHeight - el.scrollTop - el.clientHeight < 40
+}
+
+function onScroll(): void {
+  autoScrollPaused.value = !isAtBottom()
+}
+
 async function scrollToBottom(): Promise<void> {
+  if (autoScrollPaused.value) return
   await nextTick()
   if (outputContainer.value) {
     outputContainer.value.scrollTop = outputContainer.value.scrollHeight
@@ -48,6 +60,7 @@ async function scrollToBottom(): Promise<void> {
 
 watch(() => props.result, async () => {
   stackExpanded.value = false
+  autoScrollPaused.value = false
   await scrollToBottom()
 })
 
@@ -155,19 +168,26 @@ async function saveOutput(): Promise<void> {
     </div>
 
     <!-- Content -->
-    <div ref="outputContainer" class="flex-1 overflow-auto">
+    <div ref="outputContainer" class="flex-1 overflow-auto" @scroll="onScroll">
 
       <!-- Running with live output -->
-      <div v-if="isRunning">
+      <div v-if="isRunning" class="relative h-full">
         <div
           v-if="liveOutput"
-          ref="outputContainer"
           class="p-4 font-mono text-xs text-text-primary select-text whitespace-pre-wrap break-all"
         >{{ liveOutput }}<span class="inline-block w-1.5 h-3 bg-text-muted animate-pulse ml-0.5 align-middle" /></div>
         <div v-else class="flex h-full flex-col items-center justify-center gap-3 text-text-muted pt-20">
           <div class="spinner" style="width: 20px; height: 20px; border-width: 2px" />
           <span class="text-xs">Running…</span>
         </div>
+        <!-- Scroll paused indicator -->
+        <button
+          v-if="autoScrollPaused && liveOutput"
+          class="scroll-resume-btn"
+          @click="autoScrollPaused = false; scrollToBottom()"
+        >
+          ↓ Resume scroll
+        </button>
       </div>
 
       <!-- Empty state: compact, max 80px -->
@@ -332,4 +352,22 @@ async function saveOutput(): Promise<void> {
 .badge-bool      { background: rgba(167,139,250,0.12); color: #a78bfa; }
 .badge-null      { background: rgba(113,113,122,0.15); color: #71717a; }
 .badge-plain     { background: rgba(228,228,231,0.08); color: #a1a1aa; }
+
+.scroll-resume-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.scroll-resume-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
 </style>

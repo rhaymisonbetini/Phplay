@@ -45,8 +45,8 @@ declare global {
       detectPhp: () => Promise<PhpBinary[]>
       executePhp: (code: string, context: ExecutionContext) => Promise<ExecutionResult>
       cancelExecution: (executionId: string) => Promise<boolean>
-      onExecutionOutput: (cb: (payload: { executionId: string; chunk: string; stream: 'stdout' | 'stderr' }) => void) => void
-      onExecutionStarted: (cb: (payload: { executionId: string }) => void) => void
+      onExecutionOutput: (cb: (payload: { executionId: string; chunk: string; stream: 'stdout' | 'stderr' }) => void) => (() => void)
+      onExecutionStarted: (cb: (payload: { executionId: string }) => void) => (() => void)
       openProjectDialog: () => Promise<string | null>
       saveOutputFile: (content: string, defaultName: string) => Promise<boolean>
       detectFramework: (projectPath: string) => Promise<ProjectInfo>
