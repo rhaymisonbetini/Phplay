@@ -97,16 +97,19 @@ export const phplayDarkTheme: Monaco.editor.IStandaloneThemeData = {
     'editorWidget.foreground':  '#E6EDF3',
 
     // Suggest widget
-    'editorSuggestWidget.background':         '#202938',
-    'editorSuggestWidget.border':             '#253043',
-    'editorSuggestWidget.foreground':         '#E6EDF3',
-    'editorSuggestWidget.selectedBackground': '#243042',
-    'editorSuggestWidget.highlightForeground':'#00D8FF',
-    'editorSuggestWidget.focusHighlightForeground': '#00D8FF',
+    'editorSuggestWidget.background':                '#202938',
+    'editorSuggestWidget.border':                    '#253043',
+    'editorSuggestWidget.foreground':                '#E6EDF3',
+    'editorSuggestWidget.selectedBackground':        '#243042',
+    'editorSuggestWidget.selectedForeground':        '#E6EDF3',
+    'editorSuggestWidget.highlightForeground':       '#00D8FF',
+    'editorSuggestWidget.focusHighlightForeground':  '#00D8FF',
 
     // Hover widget
-    'editorHoverWidget.background': '#202938',
-    'editorHoverWidget.border':     '#253043',
+    'editorHoverWidget.background':    '#202938',
+    'editorHoverWidget.border':        '#253043',
+    'editorHoverWidget.foreground':    '#E6EDF3',
+    'editorHoverWidget.statusBarBackground': '#1E2430',
 
     // Scrollbar
     'scrollbarSlider.background':       '#253043',

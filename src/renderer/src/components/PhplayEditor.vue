@@ -304,7 +304,10 @@ onMounted(() => {
     cursorSmoothCaretAnimation: 'on',
 
     // Bracket colorization
-    bracketPairColorization: { enabled: true },
+    bracketPairColorization: { enabled: true, independentColorPoolPerBracketType: true },
+
+    // Current line highlight
+    renderLineHighlightOnlyWhenFocus: false,
 
     // Completions
     suggestOnTriggerCharacters: true,
@@ -316,6 +319,8 @@ onMounted(() => {
       showClasses: true,
       showFunctions: true,
       preview: true,
+      previewMode: 'prefix',
+      filterGraceful: true,
       insertMode: 'replace'
     },
 
