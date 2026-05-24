@@ -91,6 +91,17 @@ const parsedChunks = computed(() => {
   return parseOutput(text)
 })
 
+const PHPLAY_PREFIX = '__PHPLAY_OUTPUT__:'
+
+// Strip protocol lines from live stream to prevent flicker during execution
+const cleanLiveOutput = computed(() => {
+  if (!props.liveOutput) return ''
+  return props.liveOutput
+    .split('\n')
+    .filter(line => !line.startsWith(PHPLAY_PREFIX))
+    .join('\n')
+})
+
 async function copyOutput(): Promise<void> {
   const text = props.result?.stdout ?? ''
   if (!text) return
@@ -174,9 +185,9 @@ async function saveOutput(): Promise<void> {
       <!-- Running with live output -->
       <div v-if="isRunning" class="relative h-full">
         <div
-          v-if="liveOutput"
+          v-if="cleanLiveOutput"
           class="p-4 font-mono text-xs text-text-primary select-text whitespace-pre-wrap break-all"
-        >{{ liveOutput }}<span class="inline-block w-1.5 h-3 bg-text-muted animate-pulse ml-0.5 align-middle" /></div>
+        >{{ cleanLiveOutput }}<span class="inline-block w-1.5 h-3 bg-text-muted animate-pulse ml-0.5 align-middle" /></div>
         <div v-else class="flex h-full flex-col items-center justify-center gap-3 text-text-muted pt-20">
           <div class="spinner" style="width: 20px; height: 20px; border-width: 2px" />
           <span class="text-xs">Running…</span>
@@ -216,22 +227,21 @@ async function saveOutput(): Promise<void> {
           Use <strong>Save</strong> to get the full output.
         </div>
 
-        <!-- stdout: structured (SmartOutput) -->
-        <div
-          v-if="parsedChunks"
-          class="flex-1 overflow-auto p-4 select-text space-y-2"
-        >
-          <template v-for="(chunk, i) in parsedChunks" :key="i">
-            <SmartOutput v-if="chunk.kind === 'structured'" :data="chunk.data" />
-            <pre v-else class="output-pre" v-html="highlightOutput(chunk.content)" />
-          </template>
-        </div>
+        <!-- stdout: structured (SmartOutput) — fade-in to prevent flicker -->
+        <Transition v-if="parsedChunks" name="output-fade">
+          <div class="flex-1 overflow-auto p-4 select-text space-y-2">
+            <template v-for="(chunk, i) in parsedChunks" :key="i">
+              <SmartOutput v-if="chunk.kind === 'structured'" :data="chunk.data" />
+              <pre v-else class="output-pre" v-html="highlightOutput(chunk.content)" />
+            </template>
+          </div>
+        </Transition>
 
         <!-- stdout: plain text (formatted) -->
         <div
           v-else-if="formattedDisplay && formattedDisplay.type !== 'empty'"
           class="flex-1 overflow-auto p-4 select-text"
-          v-html="formattedDisplay.html"
+          v-html="formattedDisplay?.html"
         />
 
         <!-- Error block -->
@@ -362,6 +372,15 @@ async function saveOutput(): Promise<void> {
 .badge-bool      { background: rgba(167,139,250,0.12); color: #a78bfa; }
 .badge-null      { background: rgba(113,113,122,0.15); color: #71717a; }
 .badge-plain     { background: rgba(228,228,231,0.08); color: #a1a1aa; }
+
+/* ── Structured output fade-in ───────────────────────────────────────────── */
+.output-fade-enter-active {
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+.output-fade-enter-from {
+  opacity: 0;
+  transform: translateY(2px);
+}
 
 .scroll-resume-btn {
   position: absolute;
