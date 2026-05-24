@@ -16,7 +16,7 @@ function makeProc(opts: { exitCode?: number; signal?: string; stdout?: string; s
   proc.kill = vi.fn((signal?: string) => {
     setImmediate(() => proc.emit('close', null, signal ?? 'SIGTERM'))
     return true
-  })
+  }) as unknown as ReturnType<typeof vi.fn>
 
   if (opts.stdout !== undefined) {
     setImmediate(() => {
@@ -45,7 +45,7 @@ vi.mock('fs/promises', () => ({
 }))
 
 describe('PhpExecutionService', () => {
-  afterEach(() => vi.clearAllMocks())
+  afterEach(() => { vi.clearAllMocks() })
 
   it('returns stdout from a successful execution', async () => {
     const { spawn } = await import('child_process')
