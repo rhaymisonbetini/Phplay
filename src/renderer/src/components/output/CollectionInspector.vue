@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { StructuredOutput, TypedValue } from '../../composables/useOutputParser'
+import type { StructuredOutput } from '../../composables/useOutputParser'
 
 const props = defineProps<{
   data: Extract<StructuredOutput, { type: 'collection' }>
@@ -22,21 +22,24 @@ function shortClass(cls: string): string {
   return parts[parts.length - 1]
 }
 
-function renderItem(tv: TypedValue): string {
-  switch (tv.type) {
+function renderItem(item: StructuredOutput): string {
+  switch (item.type) {
     case 'null':   return 'null'
-    case 'bool':   return (tv.value as boolean) ? 'true' : 'false'
+    case 'bool':   return item.value ? 'true' : 'false'
     case 'int':
-    case 'float':  return String(tv.value)
-    case 'string': return `"${tv.value as string}"`
-    case 'array':  return `Array(${tv.count ?? '?'})`
-    case 'object': return tv.class ?? 'object'
-    default:       return String(tv.value ?? '')
+    case 'float':  return String(item.value)
+    case 'string': return `"${item.value}"`
+    case 'array':  return `Array(${item.count})`
+    case 'model':  return `${shortClass(item.class)}${item.key != null ? ` #${item.key}` : ''}`
+    case 'collection': return `${shortClass(item.class)}(${item.count})`
+    case 'object': return shortClass(item.class)
+    case 'exception': return item.class
+    default:       return '?'
   }
 }
 
-function itemColor(tv: TypedValue): string {
-  switch (tv.type) {
+function itemColor(item: StructuredOutput): string {
+  switch (item.type) {
     case 'null':   return 'var(--text-muted)'
     case 'bool':   return 'var(--neon-purple)'
     case 'int':

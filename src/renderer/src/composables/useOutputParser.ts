@@ -24,8 +24,8 @@ export type StructuredOutput =
   | { type: 'float'; value: number }
   | { type: 'string'; value: string }
   | { type: 'array'; count: number; items: ArrayItem[] }
-  | { type: 'collection'; class: string; count: number; items: TypedValue[] }
-  | { type: 'model'; class: string; attributes: Record<string, TypedValue> }
+  | { type: 'collection'; class: string; count: number; items: StructuredOutput[] }
+  | { type: 'model'; class: string; key: number | string | null; attributes: Record<string, TypedValue> }
   | { type: 'object'; class: string; properties: Record<string, TypedValue> }
   | { type: 'exception'; class: string; message: string; file: string; line: number; trace: TraceFrame[] }
 
