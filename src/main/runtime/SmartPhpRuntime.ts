@@ -2,6 +2,10 @@ export class SmartPhpRuntime {
   wrap(code: string): string {
     if (this.isPassthrough(code)) return code
 
+    // Rewrite `return expr;` → `phplay_render(expr);` before checking last expression
+    const withReturn = this.rewriteTopLevelReturn(code)
+    if (withReturn !== code) return withReturn
+
     const lastExpr = this.extractLastExpression(code)
     if (!lastExpr) return code
 
@@ -36,6 +40,24 @@ export class SmartPhpRuntime {
     return null
   }
 
+  private rewriteTopLevelReturn(code: string): string {
+    const lines = code.split('\n')
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const trimmed = lines[i].trim()
+      if (!trimmed || this.isIgnoredLine(trimmed)) continue
+
+      if (/^return\b/.test(trimmed)) {
+        const expr = trimmed.replace(/^return\s*/, '').replace(/;$/, '').trim() || 'null'
+        const indent = lines[i].match(/^(\s*)/)?.[1] ?? ''
+        lines[i] = `${indent}phplay_render(${expr});`
+        return lines.join('\n')
+      }
+
+      break
+    }
+    return code
+  }
+
   private isIgnoredLine(line: string): boolean {
     return (
       line === '}' ||
@@ -57,12 +79,10 @@ export class SmartPhpRuntime {
       return true
     }
 
-    // Assignment: $var = value (but not $var == or $var->prop = or comparison)
     if (/^\$\w+(\[.*?\])?\s*=[^=>]/.test(line)) {
       return true
     }
 
-    // Standalone brace
     if (/^[{}]/.test(line)) return true
 
     return false
