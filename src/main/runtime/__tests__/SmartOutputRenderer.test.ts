@@ -50,12 +50,61 @@ describe('SmartOutputRenderer', () => {
     })
 
     it('parses model type', () => {
-      const line = '__PHPLAY_OUTPUT__:{"type":"model","class":"App\\\\Models\\\\User","attributes":{"id":{"type":"int","value":1}}}\n'
+      const line = '__PHPLAY_OUTPUT__:{"type":"model","class":"App\\\\Models\\\\User","key":null,"attributes":{"id":{"type":"int","value":1}}}\n'
       const result = parseOutput(line)
       expect(result[0].kind).toBe('structured')
       const data = (result[0] as { kind: 'structured'; data: { type: string; class: string } }).data
       expect(data.type).toBe('model')
       expect(data.class).toBe('App\\Models\\User')
+    })
+
+    it('parses model with primary key', () => {
+      const line = '__PHPLAY_OUTPUT__:{"type":"model","class":"App\\\\Models\\\\User","key":42,"attributes":{"id":{"type":"int","value":42},"name":{"type":"string","value":"Igor"}}}\n'
+      const result = parseOutput(line)
+      expect(result[0].kind).toBe('structured')
+      if (result[0].kind !== 'structured') return
+      const data = result[0].data
+      expect(data.type).toBe('model')
+      if (data.type !== 'model') return
+      expect(data.key).toBe(42)
+      expect(Object.keys(data.attributes)).toContain('name')
+    })
+
+    it('parses collection with full StructuredOutput items', () => {
+      const model = JSON.stringify({ type: 'model', class: 'App\\\\Models\\\\User', key: 1, attributes: { id: { type: 'int', value: 1 } } })
+      const line = `__PHPLAY_OUTPUT__:{"type":"collection","class":"Illuminate\\\\Database\\\\Eloquent\\\\Collection","count":1,"items":[${model}]}\n`
+      const result = parseOutput(line)
+      expect(result[0].kind).toBe('structured')
+      if (result[0].kind !== 'structured') return
+      const data = result[0].data
+      expect(data.type).toBe('collection')
+      if (data.type !== 'collection') return
+      expect(data.items).toHaveLength(1)
+      expect(data.items[0].type).toBe('model')
+    })
+
+    it('parses float type', () => {
+      const result = parseOutput('__PHPLAY_OUTPUT__:{"type":"float","value":3.14}\n')
+      expect(result[0]).toEqual({ kind: 'structured', data: { type: 'float', value: 3.14 } })
+    })
+
+    it('parses exception type', () => {
+      const line = '__PHPLAY_OUTPUT__:{"type":"exception","class":"RuntimeException","message":"fail","file":"/app/foo.php","line":10,"trace":[]}\n'
+      const result = parseOutput(line)
+      expect(result[0].kind).toBe('structured')
+      if (result[0].kind !== 'structured') return
+      expect(result[0].data.type).toBe('exception')
+    })
+
+    it('parses empty collection', () => {
+      const line = '__PHPLAY_OUTPUT__:{"type":"collection","class":"Collection","count":0,"items":[]}\n'
+      const result = parseOutput(line)
+      if (result[0].kind !== 'structured') return
+      const data = result[0].data
+      expect(data.type).toBe('collection')
+      if (data.type !== 'collection') return
+      expect(data.count).toBe(0)
+      expect(data.items).toHaveLength(0)
     })
 
     it('mixes text and structured chunks', () => {
