@@ -19,7 +19,7 @@ function makeFrame(body: string): string {
 }
 
 describe('IntelephenseLsp — JSON-RPC framing', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => { vi.restoreAllMocks() })
 
   it('parses a single notification from buf', () => {
     const lsp = new IntelephenseLsp()
