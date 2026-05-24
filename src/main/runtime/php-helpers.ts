@@ -52,92 +52,80 @@ if (!function_exists('phplay_format_trace')) {
         return $frames;
     }
 }
-if (!function_exists('phplay_render')) {
-    function phplay_render($__v) {
-        $prefix = '__PHPLAY_OUTPUT__:';
-        if ($__v === null) {
-            echo $prefix . json_encode(['type' => 'null']) . PHP_EOL;
-            return;
-        }
-        if (is_bool($__v)) {
-            echo $prefix . json_encode(['type' => 'bool', 'value' => $__v]) . PHP_EOL;
-            return;
-        }
-        if (is_int($__v)) {
-            echo $prefix . json_encode(['type' => 'int', 'value' => $__v]) . PHP_EOL;
-            return;
-        }
-        if (is_float($__v)) {
-            echo $prefix . json_encode(['type' => 'float', 'value' => $__v]) . PHP_EOL;
-            return;
-        }
-        if (is_string($__v)) {
-            echo $prefix . json_encode(['type' => 'string', 'value' => $__v]) . PHP_EOL;
-            return;
-        }
+if (!function_exists('phplay_serialize')) {
+    function phplay_serialize($__v) {
+        if ($__v === null) return ['type' => 'null'];
+        if (is_bool($__v)) return ['type' => 'bool', 'value' => $__v];
+        if (is_int($__v)) return ['type' => 'int', 'value' => $__v];
+        if (is_float($__v)) return ['type' => 'float', 'value' => $__v];
+        if (is_string($__v)) return ['type' => 'string', 'value' => $__v];
         if (is_array($__v)) {
-            echo $prefix . json_encode([
+            return [
                 'type'  => 'array',
                 'count' => count($__v),
                 'items' => phplay_array_items($__v),
-            ]) . PHP_EOL;
-            return;
+            ];
         }
         if ($__v instanceof \\Throwable) {
-            echo $prefix . json_encode([
+            return [
                 'type'    => 'exception',
                 'class'   => get_class($__v),
                 'message' => $__v->getMessage(),
                 'file'    => $__v->getFile(),
                 'line'    => $__v->getLine(),
                 'trace'   => phplay_format_trace($__v->getTrace()),
-            ]) . PHP_EOL;
-            return;
+            ];
         }
         if (is_object($__v)) {
             // Eloquent Model — has getAttributes()
             if (method_exists($__v, 'getAttributes')) {
+                $hidden = method_exists($__v, 'getHidden') ? array_flip($__v->getHidden()) : [];
                 $attrs = [];
                 foreach ($__v->getAttributes() as $k => $val) {
+                    if (isset($hidden[$k])) continue;
                     $attrs[$k] = phplay_typed_value($val);
                 }
-                echo $prefix . json_encode([
+                return [
                     'type'       => 'model',
                     'class'      => get_class($__v),
+                    'key'        => method_exists($__v, 'getKey') ? $__v->getKey() : null,
                     'attributes' => $attrs,
-                ]) . PHP_EOL;
-                return;
+                ];
             }
-            // Collection — has count() + toArray()
-            if (method_exists($__v, 'count') && method_exists($__v, 'toArray')) {
+            // Collection — has count() + each()
+            if (method_exists($__v, 'count') && method_exists($__v, 'each')) {
                 $items = [];
                 $i = 0;
                 foreach ($__v as $item) {
                     if ($i >= 10) break;
-                    $items[] = phplay_typed_value($item);
+                    $items[] = phplay_serialize($item);
                     $i++;
                 }
-                echo $prefix . json_encode([
+                return [
                     'type'  => 'collection',
                     'class' => get_class($__v),
                     'count' => $__v->count(),
                     'items' => $items,
-                ]) . PHP_EOL;
-                return;
+                ];
             }
             // Generic object
             $props = [];
             foreach ((array)$__v as $k => $val) {
                 $props[ltrim($k, "\\0*\\0")] = phplay_typed_value($val);
             }
-            echo $prefix . json_encode([
+            return [
                 'type'       => 'object',
                 'class'      => get_class($__v),
                 'properties' => $props,
-            ]) . PHP_EOL;
-            return;
+            ];
         }
-        var_dump($__v);
+        return ['type' => 'unknown', 'value' => (string)$__v];
+    }
+}
+if (!function_exists('phplay_render')) {
+    function phplay_render($__v) {
+        $payload = phplay_serialize($__v);
+        echo '__PHPLAY_OUTPUT__:' . json_encode($payload) . PHP_EOL;
     }
 }
 `
