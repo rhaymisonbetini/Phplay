@@ -157,5 +157,44 @@ describe('SmartPhpRuntime', () => {
       const result = runtime.wrap(code)
       expect(result).toBe(code)
     })
+
+    // LastExpressionDetector edge cases (#111)
+    it('wraps standalone variable as last expression', () => {
+      const code = '$user = User::find(1);\n$user;'
+      const result = runtime.wrap(code)
+      expect(result).toContain('phplay_render($__result)')
+      expect(result).toContain('($user)')
+    })
+
+    it('does not wrap code ending with if block', () => {
+      const code = '$x = 1;\nif ($x > 0) {\n    $x = 2;\n}'
+      const result = runtime.wrap(code)
+      expect(result).toBe(code)
+    })
+
+    it('does not wrap code ending with try block', () => {
+      const code = 'try {\n    User::find(1);\n} catch (\\Exception $e) {\n    echo $e->getMessage();\n}'
+      const result = runtime.wrap(code)
+      expect(result).toBe(code)
+    })
+
+    it('does not duplicate output when echo is used', () => {
+      const code = 'echo "ok";'
+      const result = runtime.wrap(code)
+      expect(result).not.toContain('phplay_render')
+      expect(result).toBe(code)
+    })
+
+    it('does not attempt render after dd()', () => {
+      const code = '$user = User::find(1);\ndd($user);'
+      const result = runtime.wrap(code)
+      expect(result).not.toContain('phplay_render')
+    })
+
+    it('wraps chained method call as last expression', () => {
+      const code = '$users = User::query();\n$users->where("active", true)->get();'
+      const result = runtime.wrap(code)
+      expect(result).toContain('phplay_render($__result)')
+    })
   })
 })
