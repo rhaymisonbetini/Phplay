@@ -119,5 +119,43 @@ describe('SmartPhpRuntime', () => {
       const result = runtime.wrap(code)
       expect(result).toMatch(/^ {4}\$__result/)
     })
+
+    it('rewrites return $var; to phplay_render($var)', () => {
+      const code = '$users = User::get();\nreturn $users;'
+      const result = runtime.wrap(code)
+      expect(result).toContain('phplay_render($users)')
+      expect(result).not.toContain('return $users')
+    })
+
+    it('rewrites bare return expr to phplay_render', () => {
+      const result = runtime.wrap('return User::find(1);')
+      expect(result).toContain('phplay_render(User::find(1))')
+    })
+
+    it('rewrites return null to phplay_render(null)', () => {
+      const result = runtime.wrap('return null;')
+      expect(result).toContain('phplay_render(null)')
+    })
+
+    it('rewrites return false to phplay_render(false)', () => {
+      const result = runtime.wrap('return false;')
+      expect(result).toContain('phplay_render(false)')
+    })
+
+    it('rewrites return [] to phplay_render([])', () => {
+      const result = runtime.wrap('return [];')
+      expect(result).toContain('phplay_render([])')
+    })
+
+    it('rewrites return collect(...) to phplay_render', () => {
+      const result = runtime.wrap('return collect([1, 2, 3]);')
+      expect(result).toContain('phplay_render(collect([1, 2, 3]))')
+    })
+
+    it('does not rewrite return inside passthrough code', () => {
+      const code = 'echo "x";\nreturn $x;'
+      const result = runtime.wrap(code)
+      expect(result).toBe(code)
+    })
   })
 })
