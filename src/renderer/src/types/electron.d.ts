@@ -82,6 +82,10 @@ declare global {
       // AI Assistant
       aiSetKey: (key: string) => Promise<void>
       aiGetKey: () => Promise<string>
+      aiSetOpenAiKey: (key: string) => Promise<void>
+      aiGetOpenAiKey: () => Promise<string>
+      aiSetProvider: (provider: 'anthropic' | 'openai') => Promise<void>
+      aiGetProvider: () => Promise<'anthropic' | 'openai'>
       aiChat: (messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string) => Promise<unknown>
       onAiChunk: (cb: (payload: { text: string }) => void) => (() => void)
       onAiDone: (cb: () => void) => (() => void)

@@ -6,11 +6,22 @@ const props = defineProps<{
   lastError?: string
 }>()
 
-const apiKey = ref('')
-const showKey = ref(false)
-const savingKey = ref(false)
-const keySaved = ref(false)
+// Provider state
+const provider = ref<'anthropic' | 'openai'>('anthropic')
 
+// Anthropic key
+const anthropicKey = ref('')
+const showAnthropicKey = ref(false)
+const savingAnthropicKey = ref(false)
+const anthropicKeySaved = ref(false)
+
+// OpenAI key
+const openaiKey = ref('')
+const showOpenAiKey = ref(false)
+const savingOpenAiKey = ref(false)
+const openaiKeySaved = ref(false)
+
+// Chat state
 const prompt = ref('')
 const response = ref('')
 const streaming = ref(false)
@@ -33,7 +44,14 @@ let cleanupDone: (() => void) | null = null
 let cleanupError: (() => void) | null = null
 
 onMounted(async () => {
-  apiKey.value = await window.electronAPI.aiGetKey()
+  const [ak, ok, prov] = await Promise.all([
+    window.electronAPI.aiGetKey(),
+    window.electronAPI.aiGetOpenAiKey(),
+    window.electronAPI.aiGetProvider()
+  ])
+  anthropicKey.value = ak
+  openaiKey.value = ok
+  provider.value = prov
 })
 
 onBeforeUnmount(() => {
@@ -42,12 +60,25 @@ onBeforeUnmount(() => {
   cleanupError?.()
 })
 
-async function saveKey(): Promise<void> {
-  savingKey.value = true
-  await window.electronAPI.aiSetKey(apiKey.value.trim())
-  savingKey.value = false
-  keySaved.value = true
-  setTimeout(() => { keySaved.value = false }, 2000)
+async function switchProvider(p: 'anthropic' | 'openai'): Promise<void> {
+  provider.value = p
+  await window.electronAPI.aiSetProvider(p)
+}
+
+async function saveAnthropicKey(): Promise<void> {
+  savingAnthropicKey.value = true
+  await window.electronAPI.aiSetKey(anthropicKey.value.trim())
+  savingAnthropicKey.value = false
+  anthropicKeySaved.value = true
+  setTimeout(() => { anthropicKeySaved.value = false }, 2000)
+}
+
+async function saveOpenAiKey(): Promise<void> {
+  savingOpenAiKey.value = true
+  await window.electronAPI.aiSetOpenAiKey(openaiKey.value.trim())
+  savingOpenAiKey.value = false
+  openaiKeySaved.value = true
+  setTimeout(() => { openaiKeySaved.value = false }, 2000)
 }
 
 function applyTemplate(tpl: string): void {
@@ -110,19 +141,43 @@ function onKeydown(e: KeyboardEvent): void {
 
 <template>
   <div class="ai-sidebar">
-    <!-- API Key section -->
-    <div class="key-section">
+    <!-- Provider selector -->
+    <div class="provider-tabs">
+      <button
+        class="provider-tab"
+        :class="{ active: provider === 'anthropic' }"
+        @click="switchProvider('anthropic')"
+      >
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" stroke="none">
+          <path d="M9.8 2L14 14h-2.4l-.9-2.7H5.3L4.4 14H2L6.2 2h3.6zm-1.8 2.8L6.1 9.6h3.8L8 4.8z" />
+        </svg>
+        Claude
+      </button>
+      <button
+        class="provider-tab"
+        :class="{ active: provider === 'openai' }"
+        @click="switchProvider('openai')"
+      >
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" stroke="none">
+          <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 2a5 5 0 1 1 0 10A5 5 0 0 1 8 3z" />
+        </svg>
+        GPT
+      </button>
+    </div>
+
+    <!-- Anthropic API Key -->
+    <div v-if="provider === 'anthropic'" class="key-section">
       <p class="section-label">Anthropic API Key</p>
       <div class="key-input-row">
         <input
-          v-model="apiKey"
-          :type="showKey ? 'text' : 'password'"
+          v-model="anthropicKey"
+          :type="showAnthropicKey ? 'text' : 'password'"
           class="key-input"
           placeholder="sk-ant-…"
           spellcheck="false"
         />
-        <button class="icon-btn" :title="showKey ? 'Hide' : 'Show'" @click="showKey = !showKey">
-          <svg v-if="showKey" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <button class="icon-btn" :title="showAnthropicKey ? 'Hide' : 'Show'" @click="showAnthropicKey = !showAnthropicKey">
+          <svg v-if="showAnthropicKey" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
             <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" /><circle cx="8" cy="8" r="2" />
             <path d="M2 2l12 12" />
           </svg>
@@ -130,10 +185,37 @@ function onKeydown(e: KeyboardEvent): void {
             <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" /><circle cx="8" cy="8" r="2" />
           </svg>
         </button>
-        <button class="save-btn" :disabled="savingKey" @click="saveKey">
-          {{ keySaved ? '✓' : 'Save' }}
+        <button class="save-btn" :disabled="savingAnthropicKey" @click="saveAnthropicKey">
+          {{ anthropicKeySaved ? '✓' : 'Save' }}
         </button>
       </div>
+    </div>
+
+    <!-- OpenAI API Key -->
+    <div v-else class="key-section">
+      <p class="section-label">OpenAI API Key</p>
+      <div class="key-input-row">
+        <input
+          v-model="openaiKey"
+          :type="showOpenAiKey ? 'text' : 'password'"
+          class="key-input"
+          placeholder="sk-…"
+          spellcheck="false"
+        />
+        <button class="icon-btn" :title="showOpenAiKey ? 'Hide' : 'Show'" @click="showOpenAiKey = !showOpenAiKey">
+          <svg v-if="showOpenAiKey" width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" /><circle cx="8" cy="8" r="2" />
+            <path d="M2 2l12 12" />
+          </svg>
+          <svg v-else width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" /><circle cx="8" cy="8" r="2" />
+          </svg>
+        </button>
+        <button class="save-btn" :disabled="savingOpenAiKey" @click="saveOpenAiKey">
+          {{ openaiKeySaved ? '✓' : 'Save' }}
+        </button>
+      </div>
+      <p class="model-hint">Model: gpt-4o-mini</p>
     </div>
 
     <!-- Quick actions -->
@@ -179,8 +261,35 @@ function onKeydown(e: KeyboardEvent): void {
 <style scoped>
 .ai-sidebar { display: flex; flex-direction: column; height: 100%; overflow: hidden; gap: 0; }
 
+/* Provider tabs */
+.provider-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 6px 8px 0;
+  gap: 2px;
+}
+.provider-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--text-disabled);
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.1s, border-color 0.1s;
+  margin-bottom: -1px;
+}
+.provider-tab:hover { color: var(--text-muted); }
+.provider-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Key section */
 .key-section { padding: 8px; border-bottom: 1px solid var(--border-subtle); }
 .section-label { font-size: 0.68rem; color: var(--text-disabled); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+.model-hint { font-size: 0.65rem; color: var(--text-disabled); margin-top: 5px; }
 
 .key-input-row { display: flex; gap: 4px; }
 .key-input {
