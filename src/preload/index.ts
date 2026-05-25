@@ -94,6 +94,16 @@ const api = {
   historyToggleFavorite: (projectPath: string, id: string): Promise<boolean> =>
     ipcRenderer.invoke('history:toggleFavorite', projectPath, id),
 
+  // Saved Snippets
+  snippetList: (projectPath: string): Promise<unknown[]> =>
+    ipcRenderer.invoke('snippets:list', projectPath),
+
+  snippetSave: (projectPath: string, name: string, code: string): Promise<unknown> =>
+    ipcRenderer.invoke('snippets:save', projectPath, name, code),
+
+  snippetDelete: (projectPath: string, id: string): Promise<void> =>
+    ipcRenderer.invoke('snippets:delete', projectPath, id),
+
   // Menu events from main process
   onMenuOpenProject: (cb: () => void): void => {
     ipcRenderer.on('menu:open-project', cb)

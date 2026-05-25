@@ -11,6 +11,7 @@ import { Logger } from '../storage/Logger'
 import { WorkspaceService } from '../workspace/WorkspaceService'
 import { LaravelDiscoveryService } from '../laravel/LaravelDiscoveryService'
 import { HistoryService } from '../history/HistoryService'
+import { SnippetService } from '../snippets/SnippetService'
 import { ClaudeClient } from '../ai/ClaudeClient'
 import type { AiMessage } from '../ai/ClaudeClient'
 import { ok, fail } from './types'
@@ -21,6 +22,7 @@ const executionService = new PhpExecutionService()
 const frameworkDetector = new FrameworkDetector()
 const laravelDiscovery = new LaravelDiscoveryService()
 const historyService = new HistoryService()
+const snippetService = new SnippetService()
 const lspManager = new LanguageServerManager()
 let recentProjects: RecentProjects
 let workspaceService: WorkspaceService
@@ -124,6 +126,23 @@ export function registerIpcHandlers(): void {
     } catch {
       return null
     }
+  })
+
+  // ── Saved Snippets ────────────────────────────────────────────────────────
+
+  ipcMain.handle('snippets:list', async (_event, projectPath: string) => {
+    const ws = workspaceService.get(projectPath)
+    return snippetService.list(ws.storagePath)
+  })
+
+  ipcMain.handle('snippets:save', async (_event, projectPath: string, name: string, code: string) => {
+    const ws = await workspaceService.ensure(projectPath)
+    return snippetService.save(ws.storagePath, name, code)
+  })
+
+  ipcMain.handle('snippets:delete', async (_event, projectPath: string, id: string) => {
+    const ws = workspaceService.get(projectPath)
+    return snippetService.remove(ws.storagePath, id)
   })
 
   ipcMain.handle('recent:list', async () => {
