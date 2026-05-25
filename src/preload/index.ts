@@ -112,6 +112,10 @@ const api = {
   // AI Assistant
   aiSetKey: (key: string): Promise<void> => ipcRenderer.invoke('ai:setKey', key),
   aiGetKey: (): Promise<string> => ipcRenderer.invoke('ai:getKey'),
+  aiSetOpenAiKey: (key: string): Promise<void> => ipcRenderer.invoke('ai:setOpenAiKey', key),
+  aiGetOpenAiKey: (): Promise<string> => ipcRenderer.invoke('ai:getOpenAiKey'),
+  aiSetProvider: (provider: 'anthropic' | 'openai'): Promise<void> => ipcRenderer.invoke('ai:setProvider', provider),
+  aiGetProvider: (): Promise<'anthropic' | 'openai'> => ipcRenderer.invoke('ai:getProvider'),
   aiChat: (messages: { role: 'user' | 'assistant'; content: string }[], systemPrompt: string): Promise<unknown> =>
     ipcRenderer.invoke('ai:chat', messages, systemPrompt),
   onAiChunk: (cb: (payload: { text: string }) => void): (() => void) => {

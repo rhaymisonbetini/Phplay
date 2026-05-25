@@ -13,6 +13,7 @@ import { LaravelDiscoveryService } from '../laravel/LaravelDiscoveryService'
 import { HistoryService } from '../history/HistoryService'
 import { SnippetService } from '../snippets/SnippetService'
 import { ClaudeClient } from '../ai/ClaudeClient'
+import { GptClient } from '../ai/GptClient'
 import type { AiMessage } from '../ai/ClaudeClient'
 import { ok, fail } from './types'
 import type { ExecutionContext } from '../executor/types'
@@ -279,52 +280,93 @@ export function registerIpcHandlers(): void {
 
   // ── AI Assistant ─────────────────────────────────────────────────────────
 
-  const aiKeyFile = join(app.getPath('userData'), 'ai-key.json')
+  interface AiConfig {
+    anthropicKey: string
+    openaiKey: string
+    provider: 'anthropic' | 'openai'
+  }
 
+  const aiConfigFile = join(app.getPath('userData'), 'ai-config.json')
+
+  async function readAiConfig(): Promise<AiConfig> {
+    try {
+      const raw = await readFile(aiConfigFile, 'utf-8')
+      const parsed = JSON.parse(raw) as Partial<AiConfig> & { key?: string }
+      // migrate from old ai-key.json format
+      return {
+        anthropicKey: parsed.anthropicKey ?? parsed.key ?? '',
+        openaiKey: parsed.openaiKey ?? '',
+        provider: parsed.provider ?? 'anthropic'
+      }
+    } catch {
+      // try legacy ai-key.json
+      try {
+        const legacy = await readFile(join(app.getPath('userData'), 'ai-key.json'), 'utf-8')
+        const { key } = JSON.parse(legacy) as { key: string }
+        return { anthropicKey: key ?? '', openaiKey: '', provider: 'anthropic' }
+      } catch {
+        return { anthropicKey: '', openaiKey: '', provider: 'anthropic' }
+      }
+    }
+  }
+
+  async function writeAiConfig(cfg: AiConfig): Promise<void> {
+    await writeFile(aiConfigFile, JSON.stringify(cfg, null, 2), 'utf-8')
+  }
+
+  // Existing Anthropic key handlers (backward compat)
   ipcMain.handle('ai:setKey', async (_event, key: string) => {
-    await writeFile(aiKeyFile, JSON.stringify({ key }), 'utf-8')
+    const cfg = await readAiConfig()
+    cfg.anthropicKey = key
+    await writeAiConfig(cfg)
   })
 
   ipcMain.handle('ai:getKey', async () => {
-    try {
-      const raw = await readFile(aiKeyFile, 'utf-8')
-      return (JSON.parse(raw) as { key: string }).key
-    } catch {
-      return ''
-    }
+    return (await readAiConfig()).anthropicKey
+  })
+
+  // OpenAI key handlers
+  ipcMain.handle('ai:setOpenAiKey', async (_event, key: string) => {
+    const cfg = await readAiConfig()
+    cfg.openaiKey = key
+    await writeAiConfig(cfg)
+  })
+
+  ipcMain.handle('ai:getOpenAiKey', async () => {
+    return (await readAiConfig()).openaiKey
+  })
+
+  // Provider selection
+  ipcMain.handle('ai:setProvider', async (_event, provider: 'anthropic' | 'openai') => {
+    const cfg = await readAiConfig()
+    cfg.provider = provider
+    await writeAiConfig(cfg)
+  })
+
+  ipcMain.handle('ai:getProvider', async () => {
+    return (await readAiConfig()).provider
   })
 
   ipcMain.handle('ai:chat', async (event, messages: AiMessage[], systemPrompt: string) => {
-    let key = ''
-    try {
-      const raw = await readFile(aiKeyFile, 'utf-8')
-      key = (JSON.parse(raw) as { key: string }).key
-    } catch {
-      return fail('NO_API_KEY', 'API key not configured')
+    const cfg = await readAiConfig()
+
+    const sendChunk = (text: string): void => {
+      if (!event.sender.isDestroyed()) event.sender.send('ai:chunk', { text })
+    }
+    const sendDone = (): void => {
+      if (!event.sender.isDestroyed()) event.sender.send('ai:done')
+    }
+    const sendError = (err: Error): void => {
+      if (!event.sender.isDestroyed()) event.sender.send('ai:error', { message: err.message })
     }
 
-    if (!key) return fail('NO_API_KEY', 'API key not configured')
-
-    const client = new ClaudeClient(key)
-    client.streamChat(
-      messages,
-      systemPrompt,
-      (text) => {
-        if (!event.sender.isDestroyed()) {
-          event.sender.send('ai:chunk', { text })
-        }
-      },
-      () => {
-        if (!event.sender.isDestroyed()) {
-          event.sender.send('ai:done')
-        }
-      },
-      (err) => {
-        if (!event.sender.isDestroyed()) {
-          event.sender.send('ai:error', { message: err.message })
-        }
-      }
-    )
+    if (cfg.provider === 'openai') {
+      if (!cfg.openaiKey) return fail('NO_API_KEY', 'OpenAI API key not configured')
+      new GptClient(cfg.openaiKey).streamChat(messages, systemPrompt, sendChunk, sendDone, sendError)
+    } else {
+      if (!cfg.anthropicKey) return fail('NO_API_KEY', 'Anthropic API key not configured')
+      new ClaudeClient(cfg.anthropicKey).streamChat(messages, systemPrompt, sendChunk, sendDone, sendError)
+    }
 
     return ok(true)
   })
