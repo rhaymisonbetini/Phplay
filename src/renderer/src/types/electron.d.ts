@@ -75,6 +75,10 @@ declare global {
       historyRemove: (projectPath: string, id: string) => Promise<void>
       historyToggleFavorite: (projectPath: string, id: string) => Promise<boolean>
       onMenuOpenProject: (cb: () => void) => void
+      // Saved Snippets
+      snippetList: (projectPath: string) => Promise<SavedSnippet[]>
+      snippetSave: (projectPath: string, name: string, code: string) => Promise<SavedSnippet>
+      snippetDelete: (projectPath: string, id: string) => Promise<void>
       // AI Assistant
       aiSetKey: (key: string) => Promise<void>
       aiGetKey: () => Promise<string>
@@ -100,4 +104,11 @@ export interface HistoryEntry {
   projectPath: string
   durationMs: number
   favorite: boolean
+}
+
+export interface SavedSnippet {
+  id: string
+  name: string
+  code: string
+  savedAt: number
 }

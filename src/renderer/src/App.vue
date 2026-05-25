@@ -152,6 +152,24 @@ function loadSnippetFromHistory(code: string): void {
   sessionStore.setCode(session.id, code)
 }
 
+function autoNameFromCode(code: string): string {
+  const skip = /^(<\?php|\/\/|#|\/\*|\s*$)/
+  for (const line of code.split('\n')) {
+    const t = line.trim()
+    if (!skip.test(t)) return t.length > 40 ? t.slice(0, 40) + '…' : t
+  }
+  return `Snippet ${new Date().toLocaleTimeString()}`
+}
+
+async function saveCurrentSnippet(): Promise<void> {
+  const path = projectStore.currentProject?.path
+  const code = activeSession.value?.code ?? ''
+  if (!path || !code.trim()) return
+  const name = autoNameFromCode(code)
+  await window.electronAPI.snippetSave(path, name, code)
+  sidebarPanelRef.value?.reloadSnippets()
+}
+
 async function openProject(): Promise<void> {
   const path = await window.electronAPI.openProjectDialog()
   if (!path) return
@@ -299,6 +317,7 @@ useKeyboardShortcuts([
             @update:code="sessionStore.setCode(sessionStore.activeSessionId, $event)"
             @run="runCode"
             @stop="stopExecution"
+            @save-snippet="saveCurrentSnippet"
           />
         </template>
 

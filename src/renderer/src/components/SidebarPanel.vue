@@ -5,6 +5,7 @@ import HistorySidebar from './sidebar/HistorySidebar.vue'
 import ThemeSidebar from './sidebar/ThemeSidebar.vue'
 import LogsSidebar from './sidebar/LogsSidebar.vue'
 import AISidebar from './sidebar/AISidebar.vue'
+import SnippetsSidebar from './sidebar/SnippetsSidebar.vue'
 
 const props = defineProps<{
   panel: 'explorer' | 'history' | 'snippets' | 'themes' | 'logs' | 'ai'
@@ -25,8 +26,12 @@ const emit = defineEmits<{
 }>()
 
 const historySidebar = ref<InstanceType<typeof HistorySidebar> | null>(null)
+const snippetsSidebar = ref<InstanceType<typeof SnippetsSidebar> | null>(null)
 
-defineExpose({ reloadHistory: () => historySidebar.value?.reload() })
+defineExpose({
+  reloadHistory: () => historySidebar.value?.reload(),
+  reloadSnippets: () => snippetsSidebar.value?.reload()
+})
 
 const frameworkColor: Record<string, string> = {
   laravel: '#f87171',
@@ -169,12 +174,12 @@ function formatDate(ts: number): string {
 
     <!-- ── SNIPPETS — coming soon ── -->
     <template v-else>
-      <div class="flex flex-1 flex-col items-center justify-center gap-2 text-center px-4">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" class="text-text-disabled">
-          <path d="M9 6l-5 8 5 8M19 6l5 8-5 8M16 4l-4 20" />
-        </svg>
-        <p class="text-xs text-text-disabled">Em breve</p>
-      </div>
+      <SnippetsSidebar
+        ref="snippetsSidebar"
+        :project-path="currentProjectPath"
+        class="flex-1 overflow-hidden"
+        @load-snippet="emit('load-snippet', $event)"
+      />
     </template>
   </div>
 </template>

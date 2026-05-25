@@ -17,6 +17,7 @@ const emit = defineEmits<{
   'update:code': [value: string]
   run: []
   stop: []
+  'save-snippet': []
 }>()
 
 const runLabel = computed(() => (props.isRunning ? 'Running…' : '▶ Run'))
@@ -33,34 +34,44 @@ const runLabel = computed(() => (props.isRunning ? 'Running…' : '▶ Run'))
         <span>Editor · PHP</span>
       </div>
 
-      <Transition name="fade" mode="out-in">
+      <div class="flex items-center gap-2">
+        <!-- Save snippet -->
         <button
-          v-if="isRunning && canStop"
-          key="stop"
-          class="btn-primary flex items-center gap-1.5 !bg-error hover:!bg-red-600"
-          title="Stop execution (Esc)"
-          @click="emit('stop')"
+          class="btn-ghost flex items-center gap-1 text-2xs"
+          title="Save as snippet"
+          @click="emit('save-snippet')"
         >
-          <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><rect width="8" height="8" rx="1"/></svg>
-          Stop
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 2h8v9l-4-2.5L2 11V2z" />
+          </svg>
+          Save
         </button>
-        <button
-          v-else
-          key="run"
-          class="btn-primary flex items-center gap-1.5"
-          :class="{ 'running-pulse': isRunning }"
-          :disabled="isRunning || !canRun"
-          :title="canRun ? 'Run code (Ctrl+Enter)' : 'No PHP interpreter detected'"
-          @click="emit('run')"
-        >
-          <span
-            v-if="isRunning"
-            class="spinner"
-            style="width: 8px; height: 8px; border-width: 1.5px"
-          />
-          {{ runLabel }}
-        </button>
-      </Transition>
+
+        <Transition name="fade" mode="out-in">
+          <button
+            v-if="isRunning && canStop"
+            key="stop"
+            class="btn-primary flex items-center gap-1.5 !bg-error hover:!bg-red-600"
+            title="Stop execution (Esc)"
+            @click="emit('stop')"
+          >
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><rect width="8" height="8" rx="1"/></svg>
+            Stop
+          </button>
+          <button
+            v-else
+            key="run"
+            class="btn-primary flex items-center gap-1.5"
+            :class="{ 'running-pulse': isRunning }"
+            :disabled="isRunning || !canRun"
+            :title="canRun ? 'Run code (Ctrl+Enter)' : 'No PHP interpreter detected'"
+            @click="emit('run')"
+          >
+            <span v-if="isRunning" class="spinner" style="width: 8px; height: 8px; border-width: 1.5px" />
+            {{ runLabel }}
+          </button>
+        </Transition>
+      </div>
     </div>
 
     <!-- Monaco Editor -->
