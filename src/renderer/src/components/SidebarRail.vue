@@ -18,7 +18,7 @@ function toggle(panel: Panel): void {
 
 <template>
   <div
-    class="flex flex-col items-center border-r border-border-subtle bg-bg-surface py-2"
+    class="flex flex-col items-center bg-bg-app py-2"
     style="width: var(--sidebar-width)"
   >
     <!-- Top items -->
@@ -126,12 +126,12 @@ function toggle(panel: Panel): void {
   transition: background 0.1s, color 0.1s;
 }
 .rail-btn:hover {
-  background: var(--bg-elevated);
+  background: var(--bg-overlay);
   color: var(--text-primary);
 }
 .rail-btn--active {
   background: var(--bg-elevated);
-  color: var(--text-primary);
+  color: var(--php-400);
 }
 .rail-indicator {
   position: absolute;
@@ -139,7 +139,8 @@ function toggle(panel: Panel): void {
   top: 6px;
   bottom: 6px;
   width: 2px;
-  background: var(--neon-blue);
+  background: var(--php-glow);
   border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 6px rgba(157, 91, 255, 0.5);
 }
 </style>

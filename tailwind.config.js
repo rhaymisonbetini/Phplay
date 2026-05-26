@@ -27,18 +27,18 @@ export default {
           disabled:  '#435060',
           inverse:   '#161B22'
         },
-        // Accent — neon blue
+        // Accent — PHP purple (primary interactive color)
         accent: {
-          50:      '#e0faff',
-          100:     '#b3f4ff',
-          200:     '#80edff',
-          300:     '#4de7ff',
-          400:     '#26e1ff',
-          DEFAULT: '#00D8FF',
-          600:     '#00C3E6',
-          700:     '#00AACC',
-          800:     '#0090B3',
-          900:     '#007799'
+          50:      '#f5eeff',
+          100:     '#e6d4ff',
+          200:     '#cca8ff',
+          300:     '#b37cff',
+          400:     '#8A4FE5',
+          DEFAULT: '#9D5BFF',
+          600:     '#7a47cc',
+          700:     '#5c35a8',
+          800:     '#462785',
+          900:     '#2f1a5c'
         },
         // Neon family (use for glow effects, highlights)
         neon: {

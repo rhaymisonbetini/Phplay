@@ -37,11 +37,15 @@
   --text-muted:     #6B7C8E;
   --text-disabled:  #435060;
 
-  /* Accent — neon blue */
-  --accent:       #00D8FF;
-  --accent-hover: #00C3E6;
+  /* PHP Brand accent — primary interactive color */
+  --accent:       #9D5BFF;
+  --accent-hover: #8A4FE5;
+  --php-500:      #777BB4;
+  --php-400:      #9296D1;
+  --php-600:      #5A5E9A;
+  --php-glow:     #9D5BFF;
 
-  /* Neon colors */
+  /* Neon colors (semantic, not primary accent) */
   --neon-blue:   #00D8FF;
   --neon-purple: #BD93F9;
   --neon-green:  #50FA7B;
@@ -58,9 +62,13 @@
   --radius-icon:   12px;
   --radius-sm:     6px;
 
-  /* Glow shadows */
+  /* Shadows */
+  --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg:  0 12px 40px rgba(0, 0, 0, 0.45);
+  --shadow-glow-php:    0 0 20px rgba(157, 91, 255, 0.30);
   --shadow-neon-blue:   0 0 0 1px rgba(0,216,255,0.15), 0 0 12px rgba(0,216,255,0.08);
-  --shadow-neon-purple: 0 0 0 1px rgba(189,147,249,0.15), 0 0 12px rgba(189,147,249,0.08);
+  --shadow-neon-purple: 0 0 0 1px rgba(157,91,255,0.20), 0 0 16px rgba(157,91,255,0.12);
   --shadow-neon-green:  0 0 0 1px rgba(80,250,123,0.15), 0 0 12px rgba(80,250,123,0.08);
 
   /* Spacing scale */
@@ -197,21 +205,28 @@ body {
   .badge-info    { @apply badge; background: rgba(0,216,255,0.10); color: var(--neon-blue); }
 
   .btn-primary {
-    @apply rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-fast;
-    background: var(--neon-blue);
-    color: var(--bg-base);
+    @apply rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-fast;
+    background: var(--accent);
+    color: #fff;
     border-radius: var(--radius-button);
+    box-shadow: 0 0 0 0 rgba(157, 91, 255, 0);
+    transition: background 0.1s, box-shadow 0.15s, transform 0.1s;
   }
   .btn-primary:hover {
     background: var(--accent-hover);
-    box-shadow: var(--shadow-neon-blue);
-    transform: translateY(-1px);
+    box-shadow: var(--shadow-glow-php);
+    filter: brightness(1.08);
+  }
+  .btn-primary:active {
+    transform: scale(0.97);
+    transition-duration: 0.08s;
   }
   .btn-primary:disabled {
     opacity: 0.4;
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+    filter: none;
   }
 
   .btn-ghost {
@@ -224,10 +239,10 @@ body {
     color: var(--text-primary);
   }
 
-  /* Neon glow focus ring */
+  /* PHP glow focus ring */
   .neon-focus:focus-visible {
     outline: none;
-    box-shadow: var(--shadow-neon-blue);
+    box-shadow: var(--shadow-neon-purple);
   }
 }
 

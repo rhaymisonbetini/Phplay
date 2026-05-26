@@ -41,7 +41,7 @@ function addTab() {
         class="group relative flex h-full min-w-0 max-w-[160px] shrink-0 cursor-pointer items-center gap-2 border-r border-border-subtle px-3 transition-colors"
         :class="
           tab.id === activeId
-            ? 'bg-bg-elevated text-text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-accent'
+            ? 'bg-bg-elevated text-text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-accent'
             : 'text-text-muted hover:bg-bg-elevated/50 hover:text-text-secondary'
         "
         :title="tab.name"
