@@ -17,11 +17,17 @@ export const draculaNeon: Theme = {
     '--text-muted':     '#6B7C8E',
     '--text-disabled':  '#435060',
 
-    // Accent — neon blue
-    '--accent':       '#00D8FF',
-    '--accent-hover': '#00C3E6',
+    // Accent — PHP purple (primary interactive color)
+    '--accent':       '#9D5BFF',
+    '--accent-hover': '#8A4FE5',
 
-    // Neon family
+    // PHP brand tokens
+    '--php-500': '#777BB4',
+    '--php-400': '#9296D1',
+    '--php-600': '#5A5E9A',
+    '--php-glow': '#9D5BFF',
+
+    // Neon family (semantic, not primary accent)
     '--neon-blue':   '#00D8FF',
     '--neon-purple': '#BD93F9',
     '--neon-green':  '#50FA7B',
@@ -37,9 +43,10 @@ export const draculaNeon: Theme = {
     '--radius-icon':   '12px',
     '--radius-sm':     '6px',
 
-    // Glow shadows
+    // Shadows
+    '--shadow-glow-php':    '0 0 20px rgba(157, 91, 255, 0.30)',
     '--shadow-neon-blue':   '0 0 0 1px rgba(0,216,255,0.15), 0 0 12px rgba(0,216,255,0.08)',
-    '--shadow-neon-purple': '0 0 0 1px rgba(189,147,249,0.15), 0 0 12px rgba(189,147,249,0.08)',
+    '--shadow-neon-purple': '0 0 0 1px rgba(157,91,255,0.20), 0 0 16px rgba(157,91,255,0.12)',
     '--shadow-neon-green':  '0 0 0 1px rgba(80,250,123,0.15), 0 0 12px rgba(80,250,123,0.08)',
 
     // Spacing scale
