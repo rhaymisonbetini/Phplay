@@ -44,8 +44,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build AppImage + deb
-        run: npm run build:linux
+      - name: Build (typecheck + vite)
+        run: npm run build
+
+      - name: Package AppImage + deb
+        run: npx electron-builder --linux --publish=never
 
       - name: Upload artifacts (workflow_dispatch only)
         if: github.event_name == 'workflow_dispatch'
