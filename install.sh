@@ -119,11 +119,32 @@ fi
 chmod +x "$DEST"
 log "Downloaded and made executable"
 
-# ── Symlink (optional, for CLI launch) ───────────────────────────────────────
-SYMLINK="$INSTALL_DIR/$APP_NAME"
-if [[ "$DEST" != "$SYMLINK" ]]; then
-  ln -sf "$DEST" "$SYMLINK"
+# ── Wrapper script with --no-sandbox (required on most Linux distros) ─────────
+WRAPPER="$INSTALL_DIR/$APP_NAME"
+cat > "$WRAPPER" <<WRAPPER
+#!/usr/bin/env bash
+exec "$DEST" --no-sandbox "\$@"
+WRAPPER
+chmod +x "$WRAPPER"
+log "Created launcher → $WRAPPER"
+
+# ── Icon ──────────────────────────────────────────────────────────────────────
+ICON_URL="https://raw.githubusercontent.com/$REPO/main/resources/icon.png"
+mkdir -p "$HOME/.local/share/icons/hicolor/512x512/apps"
+mkdir -p "$HOME/.local/share/icons/hicolor/256x256/apps"
+
+if command -v curl &>/dev/null; then
+  curl -fsSL "$ICON_URL" -o "$HOME/.local/share/icons/hicolor/512x512/apps/phplay.png" 2>/dev/null || true
+  curl -fsSL "$ICON_URL" -o "$HOME/.local/share/icons/hicolor/256x256/apps/phplay.png" 2>/dev/null || true
+else
+  wget -qO "$HOME/.local/share/icons/hicolor/512x512/apps/phplay.png" "$ICON_URL" 2>/dev/null || true
+  wget -qO "$HOME/.local/share/icons/hicolor/256x256/apps/phplay.png" "$ICON_URL" 2>/dev/null || true
 fi
+
+if command -v gtk-update-icon-cache &>/dev/null; then
+  gtk-update-icon-cache -f "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+fi
+log "Installed icon"
 
 # ── .desktop entry ───────────────────────────────────────────────────────────
 DESKTOP_FILE="$DESKTOP_DIR/phplay.desktop"
@@ -131,8 +152,8 @@ cat > "$DESKTOP_FILE" <<DESKTOP
 [Desktop Entry]
 Name=Phplay
 Comment=Desktop PHP REPL — execute PHP in the context of your real projects
-Exec=$DEST
-Icon=phplay
+Exec=$WRAPPER %U
+Icon=$HOME/.local/share/icons/hicolor/512x512/apps/phplay.png
 Type=Application
 Categories=Development;IDE;
 Keywords=PHP;REPL;Laravel;Developer;
@@ -141,7 +162,6 @@ DESKTOP
 
 log "Created .desktop entry → $DESKTOP_FILE"
 
-# Update desktop database if available
 if command -v update-desktop-database &>/dev/null; then
   update-desktop-database "$DESKTOP_DIR" 2>/dev/null || true
 fi
@@ -163,5 +183,5 @@ echo ""
 echo -e "  Launch:   ${CYAN}$APP_NAME${NC}"
 echo -e "  Or find it in your application launcher."
 echo ""
-echo -e "  ${DIM}Uninstall: rm $DEST $SYMLINK $DESKTOP_FILE${NC}"
+echo -e "  ${DIM}Uninstall: rm $DEST $WRAPPER $DESKTOP_FILE${NC}"
 echo ""
