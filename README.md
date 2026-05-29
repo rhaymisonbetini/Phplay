@@ -12,9 +12,18 @@ Execute PHP snippets inside the full context of your Laravel, Symfony, or WordPr
 [![Electron](https://img.shields.io/badge/Electron-31-47848F?logo=electron)](https://www.electronjs.org/)
 [![Vue 3](https://img.shields.io/badge/Vue-3-42b883?logo=vue.js)](https://vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](#download)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](#install)
+[![Latest Release](https://img.shields.io/github/v/release/rhaymisonbetini/Phplay?color=9D5BFF&label=latest)](https://github.com/rhaymisonbetini/Phplay/releases/latest)
 
-[Features](#features) · [Screenshots](#screenshots) · [Getting Started](#getting-started) · [Architecture](#architecture) · [Contributing](#contributing)
+[Features](#features) · [Screenshots](#screenshots) · [Install](#install) · [Getting Started](#getting-started) · [Architecture](#architecture) · [Contributing](#contributing)
+
+---
+
+### Install on Linux — one line
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rhaymisonbetini/Phplay/main/install.sh | bash
+```
 
 </div>
 
@@ -162,9 +171,32 @@ This launches the Electron app with Vite hot-module replacement. Changes to the 
 
 ---
 
-## Download
+## Install
 
-Pre-built binaries are available for all platforms on the [Releases](https://github.com/rhaymisonbetini/Phplay/releases) page.
+### Linux — one line
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rhaymisonbetini/Phplay/main/install.sh | bash
+```
+
+The script:
+- Checks your architecture (x64) and installs FUSE if missing
+- Downloads the latest `.AppImage` from the [Releases](https://github.com/rhaymisonbetini/Phplay/releases) page
+- Makes it executable and places it in `~/.local/bin/phplay`
+- Creates a `.desktop` entry so Phplay appears in your application launcher
+
+> **Requires PHP 8.1+** on your system. Phplay uses your local PHP — it does not bundle one.
+
+**Uninstall:**
+```bash
+rm ~/.local/bin/phplay.AppImage ~/.local/bin/phplay ~/.local/share/applications/phplay.desktop
+```
+
+---
+
+### Manual Download
+
+Pre-built binaries for all platforms on the [Releases](https://github.com/rhaymisonbetini/Phplay/releases/latest) page.
 
 | Platform | Format |
 |---|---|
