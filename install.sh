@@ -121,6 +121,7 @@ log "Downloaded and made executable"
 
 # ── Wrapper script with --no-sandbox (required on most Linux distros) ─────────
 WRAPPER="$INSTALL_DIR/$APP_NAME"
+rm -f "$WRAPPER"  # remove symlink/old file so cat writes a real file, not through a symlink
 cat > "$WRAPPER" <<WRAPPER
 #!/usr/bin/env bash
 exec "$DEST" --no-sandbox "\$@"
