@@ -12,7 +12,7 @@ Execute PHP snippets inside the full context of your Laravel, Symfony, or WordPr
 [![Electron](https://img.shields.io/badge/Electron-31-47848F?logo=electron)](https://www.electronjs.org/)
 [![Vue 3](https://img.shields.io/badge/Vue-3-42b883?logo=vue.js)](https://vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)](#install)
+[![Platform](https://img.shields.io/badge/Platform-Linux-lightgrey)](#install)
 [![Latest Release](https://img.shields.io/github/v/release/rhaymisonbetini/Phplay?color=9D5BFF&label=latest)](https://github.com/rhaymisonbetini/Phplay/releases/latest)
 
 [Features](#features) · [Screenshots](#screenshots) · [Install](#install) · [Getting Started](#getting-started) · [Architecture](#architecture) · [Contributing](#contributing)
@@ -146,7 +146,7 @@ Think of it as a cross between a PHP REPL, a scratchpad, and an AI-assisted debu
 - **PHP** 8.1 or higher installed on your machine (Phplay uses your system PHP — it does not bundle one)
 - Git
 
-> **Tip:** On macOS/Linux, use [phpenv](https://github.com/phpenv/phpenv) or [mise](https://mise.jdx.dev/) to manage PHP versions. On Windows, [XAMPP](https://www.apachefriends.org/) or [Scoop](https://scoop.sh/) work well.
+> **Tip:** Use [phpenv](https://github.com/phpenv/phpenv) or [mise](https://mise.jdx.dev/) to manage PHP versions.
 
 ### 1. Clone the Repository
 
@@ -196,13 +196,12 @@ rm ~/.local/bin/phplay.AppImage ~/.local/bin/phplay ~/.local/share/applications/
 
 ### Manual Download
 
-Pre-built binaries for all platforms on the [Releases](https://github.com/rhaymisonbetini/Phplay/releases/latest) page.
+Pre-built binaries on the [Releases](https://github.com/rhaymisonbetini/Phplay/releases/latest) page.
 
-| Platform | Format |
+| Format | Description |
 |---|---|
-| Linux | `.AppImage` (portable) · `.deb` (Debian/Ubuntu) |
-| macOS | `.dmg` · `.zip` |
-| Windows | `.exe` (NSIS installer) |
+| `.AppImage` | Portable — works on any Linux distro |
+| `.deb` | Debian / Ubuntu / Linux Mint |
 
 ---
 
@@ -212,10 +211,8 @@ Pre-built binaries for all platforms on the [Releases](https://github.com/rhaymi
 # Type-check + build all processes
 npm run build
 
-# Package for your current platform
+# Package for Linux
 npm run build:linux   # → dist/*.AppImage, dist/*.deb
-npm run build:mac     # → dist/*.dmg, dist/*.zip
-npm run build:win     # → dist/*.exe
 ```
 
 The packaged output lands in `dist/`.
@@ -382,8 +379,7 @@ Themes are TypeScript objects that define CSS custom property maps. At startup, 
 | `npm run dev` | Start Electron + Vite dev server with HMR |
 | `npm run build` | Typecheck + build all processes |
 | `npm run build:linux` | Package for Linux (AppImage + deb) |
-| `npm run build:mac` | Package for macOS (dmg + zip) |
-| `npm run build:win` | Package for Windows (NSIS) |
+| `npm run build:linux` | Package for Linux (AppImage + deb) |
 | `npm run typecheck` | Run `vue-tsc` + `tsc` on all tsconfigs |
 | `npm run lint` | ESLint all JS/TS/Vue files (auto-fix) |
 | `npm run format` | Prettier format all files |
@@ -409,7 +405,7 @@ Tests live in `src/main/*/__tests__/` alongside the modules they test.
 | Module | Tests |
 |---|---|
 | `IntelephenseLsp` | JSON-RPC framing, response dispatch, pending request timeout |
-| `pathToUri` | Spaces, unicode, `#`, `%`, and Windows paths |
+| `pathToUri` | Spaces, unicode, `#`, `%` in paths |
 | `SmartOutputRenderer` | All output types: model, array, collection, exception, float, null |
 | `SmartPhpRuntime` | Code wrapping, `use` statement hoisting |
 | `FrameworkDetector` | Laravel, Symfony, WordPress, plain detection from fixtures |
@@ -457,16 +453,9 @@ Phplay scans common paths (`/usr/bin/php`, `/usr/local/bin/php`, Homebrew paths,
 
 Click the `LSP error` badge in the status bar to see the error message and restart the server. If it persists, check `{userData}/logs/lsp.log`.
 
-Find `{userData}` with:
-```bash
-# Linux
+Find `{userData}` at:
+```
 ~/.config/phplay/
-
-# macOS
-~/Library/Application Support/phplay/
-
-# Windows
-%APPDATA%\phplay\
 ```
 
 ### Laravel autocomplete not working
@@ -477,11 +466,7 @@ Ensure your project has a `vendor/` directory (`composer install` must have been
 
 Clear the Electron cache:
 ```bash
-# Linux
 rm -rf ~/.config/phplay/
-
-# macOS
-rm -rf ~/Library/Application\ Support/phplay/
 ```
 
 ---
