@@ -32,10 +32,10 @@
   animation: neon-pulse 3s ease-in-out infinite;
 }
 
-/* Run button execution pulse border */
+/* Run button execution pulse border — PHP purple */
 @keyframes run-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 216, 255, 0); }
-  50%       { box-shadow: 0 0 0 3px rgba(0, 216, 255, 0.2); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(157, 91, 255, 0); }
+  50%       { box-shadow: 0 0 0 4px rgba(157, 91, 255, 0.22); }
 }
 .running-pulse {
   animation: run-pulse 1.2s ease-in-out infinite;

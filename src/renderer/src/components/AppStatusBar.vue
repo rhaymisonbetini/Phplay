@@ -175,10 +175,10 @@ const isLspReady = computed(() => props.hasProject && props.lspState === 'ready'
         v-if="isLspReady"
         class="status-item gap-1 status-ready"
         title="PHP Intelligence pronto"
-        style="color: var(--neon-green)"
+        style="color: var(--php-400)"
       >
-        <span class="h-1.5 w-1.5 rounded-full" style="background: var(--neon-green)" />
-        <span class="text-2xs">PHP ✓</span>
+        <span class="h-1.5 w-1.5 rounded-full" style="background: var(--php-glow); box-shadow: 0 0 4px rgba(157,91,255,0.6)" />
+        <span class="text-2xs font-medium">PHP ✓</span>
       </span>
 
       <span v-if="(isIndexing || isLspError || isLspReady) && projectPath" class="text-border-strong">·</span>

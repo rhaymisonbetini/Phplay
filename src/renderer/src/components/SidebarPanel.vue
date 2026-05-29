@@ -50,7 +50,7 @@ function formatDate(ts: number): string {
 </script>
 
 <template>
-  <div class="flex flex-col border-r border-border-subtle bg-bg-surface" style="width: 240px; min-width: 200px;">
+  <div class="flex flex-col border border-l-0 border-border-subtle bg-bg-surface rounded-r-xl" style="width: 240px; min-width: 200px; overflow: hidden;">
     <!-- Panel header -->
     <div class="flex items-center justify-between px-3 py-2 border-b border-border-subtle">
       <span class="text-2xs font-semibold uppercase tracking-widest text-text-disabled">

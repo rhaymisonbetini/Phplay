@@ -310,14 +310,20 @@ async function saveOutput(): Promise<void> {
         <!-- Metrics bar -->
         <div
           v-if="result"
-          class="shrink-0 flex items-center gap-2 border-t border-border-subtle px-4 py-1.5 text-2xs text-text-disabled font-mono"
+          class="shrink-0 flex items-center gap-2 border-t border-border-subtle px-4 py-1.5 text-2xs font-mono"
+          style="background: var(--bg-app)"
         >
-          <span :class="hasError ? 'text-error' : 'text-success'">exit {{ result.exitCode }}</span>
-          <span>·</span>
-          <span>{{ result.executionTimeMs }}ms</span>
+          <span
+            class="rounded-full px-2 py-0.5 font-semibold"
+            :style="hasError
+              ? 'background: rgba(255,85,85,0.12); color: var(--error)'
+              : 'background: rgba(80,250,123,0.10); color: var(--success)'"
+          >exit {{ result.exitCode }}</span>
+          <span style="color: var(--text-disabled)">·</span>
+          <span style="color: var(--text-disabled)">{{ result.executionTimeMs }}ms</span>
           <template v-if="formattedMemory">
-            <span>·</span>
-            <span>{{ formattedMemory }}</span>
+            <span style="color: var(--text-disabled)">·</span>
+            <span style="color: var(--text-disabled)">{{ formattedMemory }}</span>
           </template>
         </div>
 

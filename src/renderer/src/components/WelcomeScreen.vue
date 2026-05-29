@@ -24,9 +24,9 @@ const shortcuts = [
   <div class="flex flex-1 flex-col items-center justify-center bg-bg-app gap-6 animate-fade-in">
     <!-- Logo + name -->
     <div class="flex flex-col items-center gap-3">
-      <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-bg-surface border border-border-subtle shadow-lg">
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" class="text-accent">
-          <rect width="36" height="36" rx="8" fill="currentColor" fill-opacity="0.1" />
+      <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-bg-surface border border-border-subtle welcome-logo-card">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" class="welcome-logo-svg">
+          <rect width="36" height="36" rx="8" fill="currentColor" fill-opacity="0.12" />
           <path d="M8 10h9a5 5 0 0 1 0 10H8V10z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" fill="none" />
           <path d="M17 20v7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
           <path d="M24 10v17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
@@ -73,3 +73,13 @@ const shortcuts = [
     <p class="text-2xs text-text-disabled">v0.1.0 · MIT License</p>
   </div>
 </template>
+
+<style scoped>
+.welcome-logo-card {
+  box-shadow: 0 0 24px rgba(157, 91, 255, 0.20), 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.welcome-logo-svg {
+  color: var(--php-glow);
+  filter: drop-shadow(0 0 6px rgba(157, 91, 255, 0.5));
+}
+</style>
