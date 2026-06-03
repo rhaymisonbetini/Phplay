@@ -6,6 +6,10 @@ const props = defineProps<{
   lastError?: string
 }>()
 
+const emit = defineEmits<{
+  'autocomplete-changed': [enabled: boolean]
+}>()
+
 // Provider state
 const provider = ref<'anthropic' | 'openai'>('anthropic')
 
@@ -20,6 +24,10 @@ const openaiKey = ref('')
 const showOpenAiKey = ref(false)
 const savingOpenAiKey = ref(false)
 const openaiKeySaved = ref(false)
+
+// Autocomplete state
+const autocompleteEnabled = ref(false)
+const savingAutocomplete = ref(false)
 
 // Chat state
 const prompt = ref('')
@@ -44,14 +52,16 @@ let cleanupDone: (() => void) | null = null
 let cleanupError: (() => void) | null = null
 
 onMounted(async () => {
-  const [ak, ok, prov] = await Promise.all([
+  const [ak, ok, prov, ac] = await Promise.all([
     window.electronAPI.aiGetKey(),
     window.electronAPI.aiGetOpenAiKey(),
-    window.electronAPI.aiGetProvider()
+    window.electronAPI.aiGetProvider(),
+    window.electronAPI.aiGetAutocompleteEnabled()
   ])
   anthropicKey.value = ak
   openaiKey.value = ok
   provider.value = prov
+  autocompleteEnabled.value = ac
 })
 
 onBeforeUnmount(() => {
@@ -59,6 +69,14 @@ onBeforeUnmount(() => {
   cleanupDone?.()
   cleanupError?.()
 })
+
+async function toggleAutocomplete(): Promise<void> {
+  savingAutocomplete.value = true
+  autocompleteEnabled.value = !autocompleteEnabled.value
+  await window.electronAPI.aiSetAutocompleteEnabled(autocompleteEnabled.value)
+  emit('autocomplete-changed', autocompleteEnabled.value)
+  savingAutocomplete.value = false
+}
 
 async function switchProvider(p: 'anthropic' | 'openai'): Promise<void> {
   provider.value = p
@@ -218,6 +236,31 @@ function onKeydown(e: KeyboardEvent): void {
       <p class="model-hint">Model: gpt-4o-mini</p>
     </div>
 
+    <!-- AI Autocomplete toggle -->
+    <div class="autocomplete-section">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="section-label">AI Autocomplete</p>
+          <p class="model-hint" style="margin-top: 2px">Ghost text inline suggestions</p>
+        </div>
+        <button
+          class="toggle-btn"
+          :class="{ 'toggle-btn--on': autocompleteEnabled }"
+          :disabled="savingAutocomplete"
+          :title="autocompleteEnabled ? 'Disable AI autocomplete' : 'Enable AI autocomplete'"
+          @click="toggleAutocomplete"
+        >
+          <span class="toggle-thumb" />
+        </button>
+      </div>
+      <p v-if="autocompleteEnabled" class="model-hint" style="margin-top: 4px; color: #10b981;">
+        Active — ghost text will appear as you type
+      </p>
+      <p v-else class="model-hint" style="margin-top: 4px;">
+        Off by default — enables inline AI suggestions
+      </p>
+    </div>
+
     <!-- Quick actions -->
     <div class="quick-actions">
       <button
@@ -333,6 +376,36 @@ function onKeydown(e: KeyboardEvent): void {
 }
 .save-btn:hover { border-color: var(--accent); color: var(--accent); }
 .save-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* Autocomplete toggle */
+.autocomplete-section {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.toggle-btn {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  border: none;
+  background: var(--border-default);
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle-btn--on { background: var(--accent); }
+.toggle-btn:disabled { opacity: 0.5; cursor: default; }
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.2s;
+}
+.toggle-btn--on .toggle-thumb { transform: translateX(14px); }
 
 .quick-actions {
   display: grid;

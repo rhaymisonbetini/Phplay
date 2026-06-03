@@ -340,6 +340,7 @@ useKeyboardShortcuts([
           @remove-recent="removeRecentProject"
           @load-snippet="loadSnippetFromHistory"
           @ssh-activated="handleSshActivated"
+          @autocomplete-changed="aiEnabled = $event"
           @close="activeSidebarPanel = null"
         />
       </Transition>
