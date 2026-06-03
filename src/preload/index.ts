@@ -86,6 +86,12 @@ const api = {
 
   lspPathToUri: (path: string): Promise<string> => ipcRenderer.invoke('lsp:pathToUri', path),
 
+  onLspDiagnostics: (cb: (params: { uri: string; diagnostics: unknown[] }) => void): (() => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, params: { uri: string; diagnostics: unknown[] }) => cb(params)
+    ipcRenderer.on('lsp:diagnostics', handler)
+    return () => ipcRenderer.removeListener('lsp:diagnostics', handler)
+  },
+
   // History
   historyList: (projectPath: string): Promise<unknown[]> =>
     ipcRenderer.invoke('history:list', projectPath),

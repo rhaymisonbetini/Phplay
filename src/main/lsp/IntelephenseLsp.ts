@@ -111,7 +111,12 @@ export class IntelephenseLsp extends EventEmitter {
       return
     }
     // Notifications (no id)
-    if (msg.method) this.emit('notification', msg)
+    if (msg.method) {
+      this.emit('notification', msg)
+      if (msg.method === 'textDocument/publishDiagnostics') {
+        this.emit('diagnostics', msg.params)
+      }
+    }
   }
 
   private request(method: string, params: unknown, timeoutMs = 8000): Promise<unknown> {
@@ -190,7 +195,7 @@ export class IntelephenseLsp extends EventEmitter {
             triggerParameterHints: true,
             maxItems: 100
           },
-          diagnostics: { enable: false },
+          diagnostics: { enable: true },
           format: { enable: false }
         }
       }

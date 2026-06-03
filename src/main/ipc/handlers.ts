@@ -208,6 +208,12 @@ export function registerIpcHandlers(): void {
 
     const lsp = lspManager.start(ws.id, projectPath, ws.lspCachePath, lspLogger, onStateChanged)
 
+    lsp.on('diagnostics', (params) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('lsp:diagnostics', params)
+      }
+    })
+
     lsp.initialize(projectPath, ws.lspCachePath).catch((err: Error) => {
       lspLogger?.error(`LSP initialize failed: ${err.message}`)
       if (!event.sender.isDestroyed()) {
