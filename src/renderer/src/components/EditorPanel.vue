@@ -13,6 +13,7 @@ const props = defineProps<{
   selectedPhp?: string
   canStop?: boolean
   activeSsh?: SshConnectionConfig | null
+  aiEnabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -94,6 +95,7 @@ const runLabel = computed(() => (props.isRunning ? 'Running…' : '▶ Run'))
       :lsp-ready="lspReady ?? false"
       :framework="framework"
       :selected-php="selectedPhp"
+      :ai-enabled="aiEnabled ?? false"
       class="flex-1 overflow-hidden"
       @update:model-value="emit('update:code', $event)"
       @run="emit('run')"

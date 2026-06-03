@@ -49,6 +49,7 @@ const activeExecutionId = ref<string | null>(null)
 const liveOutput = ref<string>('')
 const showCommandPalette = ref(false)
 const activeSshConnection = ref<SshConnectionConfig | null>(null)
+const aiEnabled = ref(false)
 
 const activeSession = computed(() => sessionStore.activeSession)
 const currentPath = computed(() => projectStore.currentProject?.path ?? null)
@@ -100,6 +101,7 @@ onMounted(async () => {
   }
 
   recentProjects.value = (await window.electronAPI.listRecentProjects()) as RecentProject[]
+  aiEnabled.value = await window.electronAPI.aiGetAutocompleteEnabled()
 })
 
 async function runCode(): Promise<void> {
@@ -358,6 +360,7 @@ useKeyboardShortcuts([
             :is-running="activeSession?.isRunning ?? false"
             :can-run="(!!selectedPhp || !!activeSshConnection) && !!activeSession"
           :active-ssh="activeSshConnection"
+          :ai-enabled="aiEnabled"
             :can-stop="!!activeExecutionId"
             :project-path="currentPath"
             :lsp-ready="lspReady"
