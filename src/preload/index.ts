@@ -86,6 +86,18 @@ const api = {
 
   lspPathToUri: (path: string): Promise<string> => ipcRenderer.invoke('lsp:pathToUri', path),
 
+  lspDefinition: (uri: string, line: number, character: number): Promise<unknown> =>
+    ipcRenderer.invoke('lsp:definition', uri, line, character),
+
+  lspReferences: (uri: string, line: number, character: number): Promise<unknown> =>
+    ipcRenderer.invoke('lsp:references', uri, line, character),
+
+  lspRename: (uri: string, line: number, character: number, newName: string): Promise<unknown> =>
+    ipcRenderer.invoke('lsp:rename', uri, line, character, newName),
+
+  lspCodeAction: (uri: string, range: unknown, diagnostics: unknown[]): Promise<unknown> =>
+    ipcRenderer.invoke('lsp:codeAction', uri, range, diagnostics),
+
   onLspDiagnostics: (cb: (params: { uri: string; diagnostics: unknown[] }) => void): (() => void) => {
     const handler = (_e: Electron.IpcRendererEvent, params: { uri: string; diagnostics: unknown[] }) => cb(params)
     ipcRenderer.on('lsp:diagnostics', handler)

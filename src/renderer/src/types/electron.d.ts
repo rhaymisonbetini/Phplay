@@ -10,6 +10,19 @@ export interface LspDiagnostic {
   source?: string
 }
 
+export interface LspLocation {
+  uri: string
+  range: { start: { line: number; character: number }; end: { line: number; character: number } }
+}
+
+export interface LspCodeAction {
+  title: string
+  kind?: string
+  edit?: {
+    changes?: Record<string, Array<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; newText: string }>>
+  }
+}
+
 export interface AiCompletionRequest {
   textBeforeCursor: string
   textAfterCursor: string
@@ -107,6 +120,10 @@ declare global {
       lspSignatureHelp: (uri: string, line: number, character: number) => Promise<unknown>
       lspPathToUri: (path: string) => Promise<string>
       onLspDiagnostics: (cb: (params: { uri: string; diagnostics: LspDiagnostic[] }) => void) => (() => void)
+      lspDefinition: (uri: string, line: number, character: number) => Promise<{ ok: boolean; data?: LspLocation[]; error?: unknown }>
+      lspReferences: (uri: string, line: number, character: number) => Promise<{ ok: boolean; data?: LspLocation[]; error?: unknown }>
+      lspRename: (uri: string, line: number, character: number, newName: string) => Promise<{ ok: boolean; data?: unknown; error?: unknown }>
+      lspCodeAction: (uri: string, range: unknown, diagnostics: unknown[]) => Promise<{ ok: boolean; data?: LspCodeAction[]; error?: unknown }>
       // History
       historyList: (projectPath: string) => Promise<HistoryEntry[]>
       historyRemove: (projectPath: string, id: string) => Promise<void>

@@ -291,6 +291,46 @@ export function registerIpcHandlers(): void {
   // Expose URI helper so renderer doesn't need path manipulation
   ipcMain.handle('lsp:pathToUri', (_event, path: string) => pathToUri(path))
 
+  ipcMain.handle('lsp:definition', async (_event, uri: string, line: number, character: number) => {
+    const lsp = lspManager.getActive()
+    if (!lsp) return fail('LSP_NOT_READY', 'No active LSP instance')
+    try {
+      return ok(await lsp.definition(uri, line, character))
+    } catch (e) {
+      return fail('LSP_ERROR', (e as Error).message)
+    }
+  })
+
+  ipcMain.handle('lsp:references', async (_event, uri: string, line: number, character: number) => {
+    const lsp = lspManager.getActive()
+    if (!lsp) return fail('LSP_NOT_READY', 'No active LSP instance')
+    try {
+      return ok(await lsp.references(uri, line, character))
+    } catch (e) {
+      return fail('LSP_ERROR', (e as Error).message)
+    }
+  })
+
+  ipcMain.handle('lsp:rename', async (_event, uri: string, line: number, character: number, newName: string) => {
+    const lsp = lspManager.getActive()
+    if (!lsp) return fail('LSP_NOT_READY', 'No active LSP instance')
+    try {
+      return ok(await lsp.rename(uri, line, character, newName))
+    } catch (e) {
+      return fail('LSP_ERROR', (e as Error).message)
+    }
+  })
+
+  ipcMain.handle('lsp:codeAction', async (_event, uri: string, range: unknown, diagnostics: unknown[]) => {
+    const lsp = lspManager.getActive()
+    if (!lsp) return fail('LSP_NOT_READY', 'No active LSP instance')
+    try {
+      return ok(await lsp.codeAction(uri, range, diagnostics))
+    } catch (e) {
+      return fail('LSP_ERROR', (e as Error).message)
+    }
+  })
+
   app.on('before-quit', () => lspManager.stopAll())
 
   // ── AI Assistant ─────────────────────────────────────────────────────────
