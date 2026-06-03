@@ -17,6 +17,8 @@ import { GptClient } from '../ai/GptClient'
 import type { AiMessage } from '../ai/ClaudeClient'
 import { ok, fail } from './types'
 import type { ExecutionContext } from '../executor/types'
+import { SshConnectionStore } from '../ssh/SshConnectionStore'
+import type { SshConnectionConfig } from '../ssh/types'
 
 const phpDetector = new PhpDetector()
 const executionService = new PhpExecutionService()
@@ -25,6 +27,7 @@ const laravelDiscovery = new LaravelDiscoveryService()
 const historyService = new HistoryService()
 const snippetService = new SnippetService()
 const lspManager = new LanguageServerManager()
+let sshStore: SshConnectionStore
 let recentProjects: RecentProjects
 let workspaceService: WorkspaceService
 let lspLogger: Logger | null = null
@@ -39,6 +42,7 @@ function sessionFile(projectPath: string): string {
 export function registerIpcHandlers(): void {
   recentProjects = new RecentProjects(app.getPath('userData'))
   workspaceService = new WorkspaceService(app.getPath('userData'))
+  sshStore = new SshConnectionStore(app.getPath('userData'))
 
   ipcMain.handle('php:detect', async () => {
     return phpDetector.detect()
@@ -369,5 +373,23 @@ export function registerIpcHandlers(): void {
     }
 
     return ok(true)
+  })
+
+  // ── SSH Connections ────────────────────────────────────────────────────────
+
+  ipcMain.handle('ssh:list', async () => {
+    return sshStore.list()
+  })
+
+  ipcMain.handle('ssh:get', async (_event, id: string) => {
+    return sshStore.get(id)
+  })
+
+  ipcMain.handle('ssh:save', async (_event, config: SshConnectionConfig) => {
+    return sshStore.save(config)
+  })
+
+  ipcMain.handle('ssh:delete', async (_event, id: string) => {
+    return sshStore.delete(id)
   })
 }
