@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import PhplayEditor from './PhplayEditor.vue'
+import type { SshConnectionConfig } from '../types/electron'
 
 const props = defineProps<{
   code: string
@@ -11,6 +12,7 @@ const props = defineProps<{
   framework?: string
   selectedPhp?: string
   canStop?: boolean
+  activeSsh?: SshConnectionConfig | null
 }>()
 
 const emit = defineEmits<{
@@ -32,6 +34,17 @@ const runLabel = computed(() => (props.isRunning ? 'Running…' : '▶ Run'))
           <path d="M2 3l4 3-4 3M6 9h4" />
         </svg>
         <span>Editor · PHP</span>
+        <span
+          v-if="activeSsh"
+          class="flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-medium"
+          :style="{ background: activeSsh.color + '22', color: activeSsh.color }"
+        >
+          <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="0.5" y="0.5" width="9" height="4" rx="0.75" />
+            <rect x="0.5" y="5.5" width="9" height="4" rx="0.75" />
+          </svg>
+          SSH: {{ activeSsh.name }}
+        </span>
       </div>
 
       <div class="flex items-center gap-2">

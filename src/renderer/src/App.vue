@@ -18,7 +18,7 @@ import WelcomeScreen from './components/WelcomeScreen.vue'
 import PhpConfigModal from './components/PhpConfigModal.vue'
 import ProjectDetectionToast from './components/ProjectDetectionToast.vue'
 import CommandPalette from './components/CommandPalette.vue'
-import type { ExecutionResult, Framework, RecentProject } from './types/electron'
+import type { ExecutionResult, Framework, RecentProject, SshConnectionConfig } from './types/electron'
 import { useAppLogs } from './composables/useAppLogs'
 
 type ToastState =
@@ -28,7 +28,7 @@ type ToastState =
   | { type: 'not-php'; path: string }
   | null
 
-type SidebarPanelType = 'explorer' | 'history' | 'snippets' | 'themes' | 'logs' | 'ai'
+type SidebarPanelType = 'explorer' | 'history' | 'snippets' | 'themes' | 'logs' | 'ai' | 'ssh'
 
 const sessionStore = useSessionStore()
 const projectStore = useProjectStore()
@@ -48,6 +48,7 @@ const sidebarPanelRef = ref<InstanceType<typeof SidebarPanel> | null>(null)
 const activeExecutionId = ref<string | null>(null)
 const liveOutput = ref<string>('')
 const showCommandPalette = ref(false)
+const activeSshConnection = ref<SshConnectionConfig | null>(null)
 
 const activeSession = computed(() => sessionStore.activeSession)
 const currentPath = computed(() => projectStore.currentProject?.path ?? null)
@@ -103,7 +104,17 @@ onMounted(async () => {
 
 async function runCode(): Promise<void> {
   const session = activeSession.value
-  if (!session || session.isRunning || !selectedPhp.value) return
+  if (!session || session.isRunning) return
+
+  if (activeSshConnection.value) {
+    await runCodeSsh(session)
+  } else {
+    await runCodeLocal(session)
+  }
+}
+
+async function runCodeLocal(session: { id: string; code: string; isRunning: boolean }): Promise<void> {
+  if (!selectedPhp.value) return
 
   sessionStore.setRunning(session.id, true)
   sessionStore.setOutput(session.id, null)
@@ -122,7 +133,7 @@ async function runCode(): Promise<void> {
     addLog({
       category: result.exitCode !== 0 ? 'error' : 'execution',
       level: result.exitCode !== 0 ? 'error' : 'info',
-      message: `completed in ${result.executionTimeMs}ms — exit ${result.exitCode}`,
+      message: `local — completed in ${result.executionTimeMs}ms — exit ${result.exitCode}`,
       detail: result.stderr ? result.stderr.slice(0, 200) : undefined
     })
   } catch (err) {
@@ -139,11 +150,47 @@ async function runCode(): Promise<void> {
   }
 }
 
+async function runCodeSsh(session: { id: string; code: string; isRunning: boolean }): Promise<void> {
+  const ssh = activeSshConnection.value!
+  sessionStore.setRunning(session.id, true)
+  sessionStore.setOutput(session.id, null)
+  liveOutput.value = ''
+  lastMetrics.value = null
+
+  try {
+    const result = await window.electronAPI.sshExecute(session.code, ssh.id) as ExecutionResult
+    sessionStore.setOutput(session.id, result)
+    lastMetrics.value = { timeMs: result.executionTimeMs, memKb: 0 }
+    addLog({
+      category: result.exitCode !== 0 ? 'error' : 'execution',
+      level: result.exitCode !== 0 ? 'error' : 'info',
+      message: `SSH:${ssh.name} — completed in ${result.executionTimeMs}ms — exit ${result.exitCode}`,
+      detail: result.stderr ? result.stderr.slice(0, 200) : undefined
+    })
+  } catch (err) {
+    sessionStore.setOutput(session.id, {
+      stdout: '',
+      stderr: String(err),
+      exitCode: 1,
+      executionTimeMs: 0,
+      memoryUsedKb: 0
+    })
+  } finally {
+    sessionStore.setRunning(session.id, false)
+  }
+}
+
 async function stopExecution(): Promise<void> {
-  if (activeExecutionId.value) {
+  if (activeSshConnection.value) {
+    await window.electronAPI.sshCancel()
+  } else if (activeExecutionId.value) {
     await window.electronAPI.cancelExecution(activeExecutionId.value)
     activeExecutionId.value = null
   }
+}
+
+function handleSshActivated(config: SshConnectionConfig | null): void {
+  activeSshConnection.value = config
 }
 
 function loadSnippetFromHistory(code: string): void {
@@ -290,6 +337,7 @@ useKeyboardShortcuts([
           @open-recent="openRecentProject"
           @remove-recent="removeRecentProject"
           @load-snippet="loadSnippetFromHistory"
+          @ssh-activated="handleSshActivated"
           @close="activeSidebarPanel = null"
         />
       </Transition>
@@ -308,7 +356,8 @@ useKeyboardShortcuts([
           <EditorPanel
             :code="activeSession?.code ?? '<?php\n\n'"
             :is-running="activeSession?.isRunning ?? false"
-            :can-run="!!selectedPhp && !!activeSession"
+            :can-run="(!!selectedPhp || !!activeSshConnection) && !!activeSession"
+          :active-ssh="activeSshConnection"
             :can-stop="!!activeExecutionId"
             :project-path="currentPath"
             :lsp-ready="lspReady"
