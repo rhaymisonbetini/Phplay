@@ -46,6 +46,10 @@ let completionDisposable: monaco.IDisposable | null = null
 let hoverDisposable: monaco.IDisposable | null = null
 let signatureDisposable: monaco.IDisposable | null = null
 let laravelCompletionDisposable: monaco.IDisposable | null = null
+let definitionDisposable: monaco.IDisposable | null = null
+let referencesDisposable: monaco.IDisposable | null = null
+let renameDisposable: monaco.IDisposable | null = null
+let codeActionDisposable: monaco.IDisposable | null = null
 let aiCompletionDisposable: { dispose: () => void } | null = null
 let diagnosticsCleanup: (() => void) | null = null
 
@@ -63,15 +67,32 @@ function unwrapIpc<T>(result: unknown): T | null {
 
 // ── LSP provider registration ────────────────────────────────────────────────
 
+function lspRangeToMonaco(range: { start: { line: number; character: number }; end: { line: number; character: number } }): monaco.IRange {
+  return {
+    startLineNumber: range.start.line + 1,
+    startColumn: range.start.character + 1,
+    endLineNumber: range.end.line + 1,
+    endColumn: range.end.character + 1
+  }
+}
+
 function disposeProviders(): void {
   completionDisposable?.dispose()
   hoverDisposable?.dispose()
   signatureDisposable?.dispose()
   laravelCompletionDisposable?.dispose()
+  definitionDisposable?.dispose()
+  referencesDisposable?.dispose()
+  renameDisposable?.dispose()
+  codeActionDisposable?.dispose()
   completionDisposable = null
   hoverDisposable = null
   signatureDisposable = null
   laravelCompletionDisposable = null
+  definitionDisposable = null
+  referencesDisposable = null
+  renameDisposable = null
+  codeActionDisposable = null
 }
 
 function registerLspProviders(uri: string): void {
@@ -150,6 +171,87 @@ function registerLspProviders(uri: string): void {
         },
         dispose() {}
       }
+    }
+  })
+
+  definitionDisposable = monaco.languages.registerDefinitionProvider('php', {
+    async provideDefinition(_model, position) {
+      if (!uri) return null
+      const result = await window.electronAPI.lspDefinition(uri, position.lineNumber - 1, position.column - 1)
+      if (!result.ok || !result.data?.length) return null
+      return result.data.map((loc: { uri: string; range: { start: { line: number; character: number }; end: { line: number; character: number } } }) => ({
+        uri: monaco.Uri.parse(loc.uri),
+        range: lspRangeToMonaco(loc.range)
+      }))
+    }
+  })
+
+  referencesDisposable = monaco.languages.registerReferenceProvider('php', {
+    async provideReferences(_model, position) {
+      if (!uri) return null
+      const result = await window.electronAPI.lspReferences(uri, position.lineNumber - 1, position.column - 1)
+      if (!result.ok || !result.data?.length) return null
+      return result.data.map((loc: { uri: string; range: { start: { line: number; character: number }; end: { line: number; character: number } } }) => ({
+        uri: monaco.Uri.parse(loc.uri),
+        range: lspRangeToMonaco(loc.range)
+      }))
+    }
+  })
+
+  renameDisposable = monaco.languages.registerRenameProvider('php', {
+    async provideRenameEdits(_model, position, newName) {
+      if (!uri) return null
+      const result = await window.electronAPI.lspRename(uri, position.lineNumber - 1, position.column - 1, newName)
+      if (!result.ok || !result.data) return null
+      const wsEdit = result.data as { changes?: Record<string, Array<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; newText: string }>> }
+      if (!wsEdit.changes) return { edits: [] }
+      const edits: monaco.languages.WorkspaceTextEdit[] = []
+      for (const [fileUri, fileEdits] of Object.entries(wsEdit.changes)) {
+        for (const e of fileEdits) {
+          edits.push({
+            resource: monaco.Uri.parse(fileUri),
+            textEdit: { range: lspRangeToMonaco(e.range), text: e.newText },
+            versionId: undefined
+          })
+        }
+      }
+      return { edits }
+    }
+  })
+
+  codeActionDisposable = monaco.languages.registerCodeActionProvider('php', {
+    async provideCodeActions(_model, range, context) {
+      if (!uri) return null
+      const lspDiagnostics = context.markers.map((m) => ({
+        range: {
+          start: { line: m.startLineNumber - 1, character: m.startColumn - 1 },
+          end: { line: m.endLineNumber - 1, character: m.endColumn - 1 }
+        },
+        message: m.message,
+        severity: m.severity === monaco.MarkerSeverity.Error ? 1 : 2
+      }))
+      const lspRange = {
+        start: { line: range.startLineNumber - 1, character: range.startColumn - 1 },
+        end: { line: range.endLineNumber - 1, character: range.endColumn - 1 }
+      }
+      const result = await window.electronAPI.lspCodeAction(uri, lspRange, lspDiagnostics)
+      if (!result.ok || !result.data?.length) return { actions: [], dispose() {} }
+      const actions: monaco.languages.CodeAction[] = (result.data as Array<{ title: string; edit?: { changes?: Record<string, Array<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; newText: string }>> } }>).map((a) => {
+        const edits: monaco.languages.WorkspaceTextEdit[] = []
+        if (a.edit?.changes) {
+          for (const [fileUri, fileEdits] of Object.entries(a.edit.changes)) {
+            for (const e of fileEdits) {
+              edits.push({
+                resource: monaco.Uri.parse(fileUri),
+                textEdit: { range: lspRangeToMonaco(e.range), text: e.newText },
+                versionId: undefined
+              })
+            }
+          }
+        }
+        return { title: a.title, edit: { edits } }
+      })
+      return { actions, dispose() {} }
     }
   })
 }

@@ -262,6 +262,47 @@ export class IntelephenseLsp extends EventEmitter {
       position: { line, character }
     }, 4_000)
   }
+
+  async definition(uri: string, line: number, character: number): Promise<unknown[]> {
+    if (!this.ready) return []
+    const result = await this.request('textDocument/definition', {
+      textDocument: { uri },
+      position: { line, character }
+    }, 4_000)
+    if (!result) return []
+    return Array.isArray(result) ? result : [result]
+  }
+
+  async references(uri: string, line: number, character: number): Promise<unknown[]> {
+    if (!this.ready) return []
+    const result = await this.request('textDocument/references', {
+      textDocument: { uri },
+      position: { line, character },
+      context: { includeDeclaration: true }
+    }, 8_000)
+    if (!result) return []
+    return Array.isArray(result) ? result : [result]
+  }
+
+  async rename(uri: string, line: number, character: number, newName: string): Promise<unknown> {
+    if (!this.ready) return null
+    return this.request('textDocument/rename', {
+      textDocument: { uri },
+      position: { line, character },
+      newName
+    }, 8_000)
+  }
+
+  async codeAction(uri: string, range: unknown, diagnostics: unknown[]): Promise<unknown[]> {
+    if (!this.ready) return []
+    const result = await this.request('textDocument/codeAction', {
+      textDocument: { uri },
+      range,
+      context: { diagnostics }
+    }, 8_000)
+    if (!result) return []
+    return Array.isArray(result) ? result : [result]
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
