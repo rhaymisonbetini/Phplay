@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as monaco from 'monaco-editor'
+import { registerCompletion } from 'monacopilot'
 import { phplayDarkTheme } from '../assets/monaco-theme'
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import { registerLaravelCompletionProvider, loadLaravelMeta } from '../composables/useLaravelCompletions'
@@ -18,6 +19,7 @@ const props = withDefaults(
     lspReady?: boolean
     framework?: string
     selectedPhp?: string
+    aiEnabled?: boolean
   }>(),
   {
     modelValue: '<?php\n\n',
@@ -26,7 +28,8 @@ const props = withDefaults(
     projectPath: null,
     lspReady: false,
     framework: 'plain',
-    selectedPhp: ''
+    selectedPhp: '',
+    aiEnabled: false
   }
 )
 
@@ -43,6 +46,7 @@ let completionDisposable: monaco.IDisposable | null = null
 let hoverDisposable: monaco.IDisposable | null = null
 let signatureDisposable: monaco.IDisposable | null = null
 let laravelCompletionDisposable: monaco.IDisposable | null = null
+let aiCompletionDisposable: { dispose: () => void } | null = null
 
 // ── IpcResult unwrap ─────────────────────────────────────────────────────────
 
@@ -337,6 +341,33 @@ onMounted(() => {
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
     emit('run')
   })
+
+  aiCompletionDisposable = registerCompletion(monaco, editor, {
+    language: 'php',
+    trigger: 'onIdle',
+    enableCaching: true,
+    requestHandler: async ({ body }) => {
+      if (!props.aiEnabled) return null
+
+      const result = await window.electronAPI.aiGetCompletion(
+        {
+          textBeforeCursor: body.textBeforeCursor,
+          textAfterCursor: body.textAfterCursor,
+          language: body.language,
+          cursorPosition: body.cursorPosition
+        },
+        {
+          framework: props.framework as 'laravel' | 'symfony' | 'wordpress' | 'plain' | undefined,
+          projectPath: props.projectPath ?? undefined
+        }
+      )
+
+      return result.ok ? result.data ?? null : null
+    },
+    onError: (error) => {
+      console.warn('[AI completion]', error.message)
+    }
+  })
 })
 
 watch(
@@ -382,6 +413,8 @@ onBeforeUnmount(async () => {
     await window.electronAPI.lspDidClose(currentUri).catch(() => undefined)
   }
   disposeProviders()
+  aiCompletionDisposable?.dispose()
+  aiCompletionDisposable = null
   editor?.dispose()
   editor = null
 })
