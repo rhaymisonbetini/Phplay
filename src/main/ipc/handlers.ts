@@ -18,6 +18,7 @@ import type { AiMessage } from '../ai/ClaudeClient'
 import { ok, fail } from './types'
 import type { ExecutionContext } from '../executor/types'
 import { SshConnectionStore } from '../ssh/SshConnectionStore'
+import { SshTransport } from '../ssh/SshTransport'
 import type { SshConnectionConfig } from '../ssh/types'
 
 const phpDetector = new PhpDetector()
@@ -391,5 +392,42 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('ssh:delete', async (_event, id: string) => {
     return sshStore.delete(id)
+  })
+
+  ipcMain.handle('ssh:test', async (_event, config: SshConnectionConfig) => {
+    const transport = new SshTransport()
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('SSH_TIMEOUT')), 10_000)
+    )
+
+    try {
+      await Promise.race([transport.connect(config), timeout])
+
+      const whichOutput = await transport.exec('which php 2>/dev/null || echo "not_found"')
+      const phpBinary = whichOutput.trim()
+
+      if (!phpBinary || phpBinary === 'not_found') {
+        transport.disconnect()
+        return fail('PHP_NOT_FOUND', 'PHP binary not found on remote server')
+      }
+
+      const versionOutput = await transport.exec(`${phpBinary} --version 2>/dev/null | head -1`)
+      const match = versionOutput.match(/PHP\s+([\d.]+)/)
+      const phpVersion = match ? match[1] : 'unknown'
+
+      transport.disconnect()
+      return ok({ connected: true, phpBinary, phpVersion })
+    } catch (err: unknown) {
+      transport.disconnect()
+      const message = err instanceof Error ? err.message : String(err)
+
+      if (message === 'SSH_TIMEOUT') {
+        return fail('SSH_TIMEOUT', 'Connection timed out after 10 seconds')
+      }
+      if (message.includes('Authentication') || message.includes('auth')) {
+        return fail('SSH_AUTH_FAILED', `Authentication failed: ${message}`)
+      }
+      return fail('SSH_ERROR', message)
+    }
   })
 }
