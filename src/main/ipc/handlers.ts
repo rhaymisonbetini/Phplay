@@ -21,6 +21,8 @@ import { SshConnectionStore } from '../ssh/SshConnectionStore'
 import { SshTransport } from '../ssh/SshTransport'
 import { SshExecutor } from '../ssh/SshExecutor'
 import type { SshConnectionConfig } from '../ssh/types'
+import { AiCompletionService } from '../ai/AiCompletionService'
+import type { CompletionRequest, ProjectContext } from '../ai/AiCompletionService'
 
 const phpDetector = new PhpDetector()
 const executionService = new PhpExecutionService()
@@ -291,6 +293,7 @@ export function registerIpcHandlers(): void {
     anthropicKey: string
     openaiKey: string
     provider: 'anthropic' | 'openai'
+    autocompleteEnabled: boolean
   }
 
   const aiConfigFile = join(app.getPath('userData'), 'ai-config.json')
@@ -303,16 +306,17 @@ export function registerIpcHandlers(): void {
       return {
         anthropicKey: parsed.anthropicKey ?? parsed.key ?? '',
         openaiKey: parsed.openaiKey ?? '',
-        provider: parsed.provider ?? 'anthropic'
+        provider: parsed.provider ?? 'anthropic',
+        autocompleteEnabled: parsed.autocompleteEnabled ?? false
       }
     } catch {
       // try legacy ai-key.json
       try {
         const legacy = await readFile(join(app.getPath('userData'), 'ai-key.json'), 'utf-8')
         const { key } = JSON.parse(legacy) as { key: string }
-        return { anthropicKey: key ?? '', openaiKey: '', provider: 'anthropic' }
+        return { anthropicKey: key ?? '', openaiKey: '', provider: 'anthropic', autocompleteEnabled: false }
       } catch {
-        return { anthropicKey: '', openaiKey: '', provider: 'anthropic' }
+        return { anthropicKey: '', openaiKey: '', provider: 'anthropic', autocompleteEnabled: false }
       }
     }
   }
@@ -376,6 +380,43 @@ export function registerIpcHandlers(): void {
     }
 
     return ok(true)
+  })
+
+  ipcMain.handle('ai:completion', async (_event, request: CompletionRequest, projectContext: ProjectContext) => {
+    const cfg = await readAiConfig()
+
+    const apiKey = cfg.provider === 'openai' ? cfg.openaiKey : cfg.anthropicKey
+    if (!apiKey) return fail('NO_API_KEY', `${cfg.provider} API key not configured`)
+
+    if (!cfg.autocompleteEnabled) return fail('DISABLED', 'AI autocomplete is disabled')
+
+    const service = new AiCompletionService()
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), 8_000)
+    )
+
+    try {
+      const completion = await Promise.race([
+        service.getCompletion(request, projectContext, apiKey, cfg.provider),
+        timeout
+      ])
+      return ok(completion)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err)
+      if (message === 'TIMEOUT') return fail('TIMEOUT', 'Completion request timed out')
+      return fail('AI_COMPLETION_ERROR', message)
+    }
+  })
+
+  ipcMain.handle('ai:setAutocompleteEnabled', async (_event, enabled: boolean) => {
+    const cfg = await readAiConfig()
+    await writeAiConfig({ ...cfg, autocompleteEnabled: enabled })
+  })
+
+  ipcMain.handle('ai:getAutocompleteEnabled', async () => {
+    const cfg = await readAiConfig()
+    return cfg.autocompleteEnabled ?? false
   })
 
   // ── SSH Connections ────────────────────────────────────────────────────────
