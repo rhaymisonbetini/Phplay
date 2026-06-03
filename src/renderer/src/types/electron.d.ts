@@ -3,6 +3,21 @@
 
 export type Framework = 'laravel' | 'symfony' | 'wordpress' | 'plain'
 
+export interface SshConnectionConfig {
+  id: string
+  name: string
+  color: string
+  host: string
+  port: number
+  username: string
+  authType: 'password' | 'key'
+  password?: string
+  privateKeyPath?: string
+  passphrase?: string
+  remotePath: string
+  phpBinary?: string
+}
+
 export interface PhpBinary {
   path: string
   version: string
@@ -90,6 +105,11 @@ declare global {
       onAiChunk: (cb: (payload: { text: string }) => void) => (() => void)
       onAiDone: (cb: () => void) => (() => void)
       onAiError: (cb: (payload: { message: string }) => void) => (() => void)
+      // SSH Connections
+      sshList: () => Promise<SshConnectionConfig[]>
+      sshGet: (id: string) => Promise<SshConnectionConfig | null>
+      sshSave: (config: SshConnectionConfig) => Promise<SshConnectionConfig>
+      sshDelete: (id: string) => Promise<void>
     }
   }
 }

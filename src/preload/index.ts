@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { ExecutionContext, ExecutionResult } from '../main/executor/types'
 import type { PhpBinary } from '../main/php/PhpDetector'
 import type { ProjectInfo } from '../main/project/FrameworkDetector'
+import type { SshConnectionConfig } from '../main/ssh/types'
 
 const api = {
   detectPhp: (): Promise<PhpBinary[]> => ipcRenderer.invoke('php:detect'),
@@ -132,7 +133,13 @@ const api = {
     const handler = (_e: Electron.IpcRendererEvent, p: { message: string }) => cb(p)
     ipcRenderer.on('ai:error', handler)
     return () => ipcRenderer.removeListener('ai:error', handler)
-  }
+  },
+
+  // ── SSH Connections ──────────────────────────────────────────────────────
+  sshList: (): Promise<SshConnectionConfig[]> => ipcRenderer.invoke('ssh:list'),
+  sshGet: (id: string): Promise<SshConnectionConfig | null> => ipcRenderer.invoke('ssh:get', id),
+  sshSave: (config: SshConnectionConfig): Promise<SshConnectionConfig> => ipcRenderer.invoke('ssh:save', config),
+  sshDelete: (id: string): Promise<void> => ipcRenderer.invoke('ssh:delete', id)
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)
