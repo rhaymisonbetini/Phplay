@@ -3,6 +3,20 @@
 
 export type Framework = 'laravel' | 'symfony' | 'wordpress' | 'plain'
 
+export interface AiCompletionRequest {
+  textBeforeCursor: string
+  textAfterCursor: string
+  language: string
+  cursorPosition: { lineNumber: number; column: number }
+}
+
+export interface AiProjectContext {
+  framework?: 'laravel' | 'symfony' | 'wordpress' | 'plain'
+  phpVersion?: string
+  projectPath?: string
+  currentFile?: string
+}
+
 export interface SshConnectionConfig {
   id: string
   name: string
@@ -94,6 +108,10 @@ declare global {
       snippetList: (projectPath: string) => Promise<SavedSnippet[]>
       snippetSave: (projectPath: string, name: string, code: string) => Promise<SavedSnippet>
       snippetDelete: (projectPath: string, id: string) => Promise<void>
+      // AI Autocomplete
+      aiGetCompletion: (request: AiCompletionRequest, projectContext: AiProjectContext) => Promise<{ ok: boolean; data?: string | null; error?: { code: string; message: string } }>
+      aiSetAutocompleteEnabled: (enabled: boolean) => Promise<void>
+      aiGetAutocompleteEnabled: () => Promise<boolean>
       // AI Assistant
       aiSetKey: (key: string) => Promise<void>
       aiGetKey: () => Promise<string>

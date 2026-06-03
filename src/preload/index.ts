@@ -3,6 +3,7 @@ import type { ExecutionContext, ExecutionResult } from '../main/executor/types'
 import type { PhpBinary } from '../main/php/PhpDetector'
 import type { ProjectInfo } from '../main/project/FrameworkDetector'
 import type { SshConnectionConfig } from '../main/ssh/types'
+import type { CompletionRequest, ProjectContext } from '../main/ai/AiCompletionService'
 
 const api = {
   detectPhp: (): Promise<PhpBinary[]> => ipcRenderer.invoke('php:detect'),
@@ -111,6 +112,10 @@ const api = {
   },
 
   // AI Assistant
+  aiGetCompletion: (request: CompletionRequest, projectContext: ProjectContext): Promise<{ ok: boolean; data?: string | null; error?: { code: string; message: string } }> =>
+    ipcRenderer.invoke('ai:completion', request, projectContext),
+  aiSetAutocompleteEnabled: (enabled: boolean): Promise<void> => ipcRenderer.invoke('ai:setAutocompleteEnabled', enabled),
+  aiGetAutocompleteEnabled: (): Promise<boolean> => ipcRenderer.invoke('ai:getAutocompleteEnabled'),
   aiSetKey: (key: string): Promise<void> => ipcRenderer.invoke('ai:setKey', key),
   aiGetKey: (): Promise<string> => ipcRenderer.invoke('ai:getKey'),
   aiSetOpenAiKey: (key: string): Promise<void> => ipcRenderer.invoke('ai:setOpenAiKey', key),
