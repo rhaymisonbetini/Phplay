@@ -3,6 +3,13 @@
 
 export type Framework = 'laravel' | 'symfony' | 'wordpress' | 'plain'
 
+export interface LspDiagnostic {
+  range: { start: { line: number; character: number }; end: { line: number; character: number } }
+  severity?: number
+  message: string
+  source?: string
+}
+
 export interface AiCompletionRequest {
   textBeforeCursor: string
   textAfterCursor: string
@@ -99,6 +106,7 @@ declare global {
       lspHover: (uri: string, line: number, character: number) => Promise<unknown>
       lspSignatureHelp: (uri: string, line: number, character: number) => Promise<unknown>
       lspPathToUri: (path: string) => Promise<string>
+      onLspDiagnostics: (cb: (params: { uri: string; diagnostics: LspDiagnostic[] }) => void) => (() => void)
       // History
       historyList: (projectPath: string) => Promise<HistoryEntry[]>
       historyRemove: (projectPath: string, id: string) => Promise<void>

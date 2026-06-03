@@ -47,6 +47,7 @@ let hoverDisposable: monaco.IDisposable | null = null
 let signatureDisposable: monaco.IDisposable | null = null
 let laravelCompletionDisposable: monaco.IDisposable | null = null
 let aiCompletionDisposable: { dispose: () => void } | null = null
+let diagnosticsCleanup: (() => void) | null = null
 
 // ── IpcResult unwrap ─────────────────────────────────────────────────────────
 
@@ -342,6 +343,32 @@ onMounted(() => {
     emit('run')
   })
 
+  diagnosticsCleanup = window.electronAPI.onLspDiagnostics((params) => {
+    if (!editor) return
+    const model = editor.getModel()
+    if (!model) return
+
+    if (params.uri !== currentUri) {
+      return
+    }
+
+    const markers = (params.diagnostics as Array<{
+      severity?: number
+      range: { start: { line: number; character: number }; end: { line: number; character: number } }
+      message: string
+    }>).map((d) => ({
+      severity: d.severity === 1 ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+      startLineNumber: d.range.start.line + 1,
+      startColumn: d.range.start.character + 1,
+      endLineNumber: d.range.end.line + 1,
+      endColumn: d.range.end.character + 1,
+      message: d.message,
+      source: 'Intelephense'
+    }))
+
+    monaco.editor.setModelMarkers(model, 'intelephense', markers)
+  })
+
   aiCompletionDisposable = registerCompletion(monaco, editor, {
     language: 'php',
     trigger: 'onIdle',
@@ -411,8 +438,14 @@ watch(
 onBeforeUnmount(async () => {
   if (currentUri) {
     await window.electronAPI.lspDidClose(currentUri).catch(() => undefined)
+    if (editor) {
+      const model = editor.getModel()
+      if (model) monaco.editor.setModelMarkers(model, 'intelephense', [])
+    }
   }
   disposeProviders()
+  diagnosticsCleanup?.()
+  diagnosticsCleanup = null
   aiCompletionDisposable?.dispose()
   aiCompletionDisposable = null
   editor?.dispose()
