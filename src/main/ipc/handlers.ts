@@ -19,6 +19,7 @@ import { ok, fail } from './types'
 import type { ExecutionContext } from '../executor/types'
 import { SshConnectionStore } from '../ssh/SshConnectionStore'
 import { SshTransport } from '../ssh/SshTransport'
+import { SshExecutor } from '../ssh/SshExecutor'
 import type { SshConnectionConfig } from '../ssh/types'
 
 const phpDetector = new PhpDetector()
@@ -29,6 +30,7 @@ const historyService = new HistoryService()
 const snippetService = new SnippetService()
 const lspManager = new LanguageServerManager()
 let sshStore: SshConnectionStore
+let activeSshExecutor: SshExecutor | null = null
 let recentProjects: RecentProjects
 let workspaceService: WorkspaceService
 let lspLogger: Logger | null = null
@@ -429,5 +431,28 @@ export function registerIpcHandlers(): void {
       }
       return fail('SSH_ERROR', message)
     }
+  })
+
+  ipcMain.handle('ssh:execute', async (event, code: string, connectionId: string) => {
+    const config = await sshStore.get(connectionId)
+    if (!config) return fail('SSH_NOT_FOUND', `SSH connection ${connectionId} not found`)
+
+    const executor = new SshExecutor()
+    activeSshExecutor = executor
+
+    const result = await executor.run(config, code, (chunk, stream) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('execution:output', { executionId: connectionId, chunk, stream })
+      }
+    })
+
+    activeSshExecutor = null
+    return result
+  })
+
+  ipcMain.handle('ssh:cancel', async () => {
+    activeSshExecutor?.cancel()
+    activeSshExecutor = null
+    return true
   })
 }
