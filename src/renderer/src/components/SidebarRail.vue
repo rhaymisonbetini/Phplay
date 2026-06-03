@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-type Panel = 'explorer' | 'history' | 'snippets' | 'themes' | 'logs' | 'ai'
+type Panel = 'explorer' | 'history' | 'snippets' | 'themes' | 'logs' | 'ai' | 'ssh'
 
 const emit = defineEmits<{
   'panel-change': [panel: Panel | null]
@@ -75,6 +75,22 @@ function toggle(panel: Panel): void {
         <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="1" y="2" width="14" height="12" rx="2" />
           <path d="M4 6h8M4 9h6M4 12h4" />
+        </svg>
+      </button>
+
+      <!-- SSH -->
+      <button
+        class="rail-btn relative"
+        :class="activePanel === 'ssh' ? 'rail-btn--active' : ''"
+        title="SSH Connections"
+        @click="toggle('ssh')"
+      >
+        <span v-if="activePanel === 'ssh'" class="rail-indicator" />
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="1" width="14" height="6" rx="1" />
+          <rect x="1" y="9" width="14" height="6" rx="1" />
+          <circle cx="3.5" cy="4" r="0.75" fill="currentColor" stroke="none" />
+          <circle cx="3.5" cy="12" r="0.75" fill="currentColor" stroke="none" />
         </svg>
       </button>
     </div>

@@ -6,9 +6,11 @@ import ThemeSidebar from './sidebar/ThemeSidebar.vue'
 import LogsSidebar from './sidebar/LogsSidebar.vue'
 import AISidebar from './sidebar/AISidebar.vue'
 import SnippetsSidebar from './sidebar/SnippetsSidebar.vue'
+import SshSidebar from './sidebar/SshSidebar.vue'
+import type { SshConnectionConfig } from '../types/electron'
 
 const props = defineProps<{
-  panel: 'explorer' | 'history' | 'snippets' | 'themes' | 'logs' | 'ai'
+  panel: 'explorer' | 'history' | 'snippets' | 'themes' | 'logs' | 'ai' | 'ssh'
   currentCode?: string
   lastError?: string
   currentProjectPath?: string | null
@@ -22,6 +24,7 @@ const emit = defineEmits<{
   'open-recent': [path: string]
   'remove-recent': [path: string]
   'load-snippet': [code: string]
+  'ssh-activated': [config: SshConnectionConfig | null]
   close: []
 }>()
 
@@ -54,7 +57,7 @@ function formatDate(ts: number): string {
     <!-- Panel header -->
     <div class="flex items-center justify-between px-3 py-2 border-b border-border-subtle">
       <span class="text-2xs font-semibold uppercase tracking-widest text-text-disabled">
-        {{ panel === 'explorer' ? 'Explorer' : panel === 'history' ? 'History' : panel === 'themes' ? 'Theme' : panel === 'logs' ? 'Logs' : panel === 'ai' ? 'AI Assistant' : 'Snippets' }}
+        {{ panel === 'explorer' ? 'Explorer' : panel === 'history' ? 'History' : panel === 'themes' ? 'Theme' : panel === 'logs' ? 'Logs' : panel === 'ai' ? 'AI Assistant' : panel === 'ssh' ? 'SSH' : 'Snippets' }}
       </span>
       <button
         class="rounded p-0.5 text-text-disabled hover:text-text-muted transition-colors"
@@ -172,7 +175,12 @@ function formatDate(ts: number): string {
       <AISidebar :code="props.currentCode" :last-error="props.lastError" />
     </template>
 
-    <!-- ── SNIPPETS — coming soon ── -->
+    <!-- ── SSH ── -->
+    <template v-else-if="panel === 'ssh'">
+      <SshSidebar @connection-activated="emit('ssh-activated', $event)" />
+    </template>
+
+    <!-- ── SNIPPETS ── -->
     <template v-else>
       <SnippetsSidebar
         ref="snippetsSidebar"
