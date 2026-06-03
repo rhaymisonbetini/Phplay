@@ -110,6 +110,7 @@ declare global {
       sshGet: (id: string) => Promise<SshConnectionConfig | null>
       sshSave: (config: SshConnectionConfig) => Promise<SshConnectionConfig>
       sshDelete: (id: string) => Promise<void>
+      sshTest: (config: SshConnectionConfig) => Promise<{ ok: boolean; data?: { connected: boolean; phpBinary: string; phpVersion: string }; error?: { code: string; message: string } }>
     }
   }
 }
