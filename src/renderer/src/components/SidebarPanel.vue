@@ -25,6 +25,7 @@ const emit = defineEmits<{
   'remove-recent': [path: string]
   'load-snippet': [code: string]
   'ssh-activated': [config: SshConnectionConfig | null]
+  'autocomplete-changed': [enabled: boolean]
   close: []
 }>()
 
@@ -172,7 +173,11 @@ function formatDate(ts: number): string {
 
     <!-- ── AI ASSISTANT ── -->
     <template v-else-if="panel === 'ai'">
-      <AISidebar :code="props.currentCode" :last-error="props.lastError" />
+      <AISidebar
+        :code="props.currentCode"
+        :last-error="props.lastError"
+        @autocomplete-changed="emit('autocomplete-changed', $event)"
+      />
     </template>
 
     <!-- ── SSH ── -->
