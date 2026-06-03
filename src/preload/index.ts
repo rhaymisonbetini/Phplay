@@ -141,7 +141,10 @@ const api = {
   sshSave: (config: SshConnectionConfig): Promise<SshConnectionConfig> => ipcRenderer.invoke('ssh:save', config),
   sshDelete: (id: string): Promise<void> => ipcRenderer.invoke('ssh:delete', id),
   sshTest: (config: SshConnectionConfig): Promise<{ ok: boolean; data?: { connected: boolean; phpBinary: string; phpVersion: string }; error?: { code: string; message: string } }> =>
-    ipcRenderer.invoke('ssh:test', config)
+    ipcRenderer.invoke('ssh:test', config),
+  sshExecute: (code: string, connectionId: string): Promise<unknown> =>
+    ipcRenderer.invoke('ssh:execute', code, connectionId),
+  sshCancel: (): Promise<boolean> => ipcRenderer.invoke('ssh:cancel')
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)
