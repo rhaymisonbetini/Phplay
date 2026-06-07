@@ -61,7 +61,7 @@ defineProps<{
       <span
         class="rounded-full px-2 py-0.5 text-2xs"
         style="background: var(--bg-overlay); color: var(--text-disabled)"
-      >v0.2.0</span>
+      >v0.3.0</span>
     </div>
   </div>
 </template>
