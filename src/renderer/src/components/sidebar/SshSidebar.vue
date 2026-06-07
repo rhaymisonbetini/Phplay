@@ -5,6 +5,7 @@ import SshConnectionForm from '../ssh/SshConnectionForm.vue'
 
 const emit = defineEmits<{
   'connection-activated': [config: SshConnectionConfig | null]
+  reindex: []
 }>()
 
 const connections = ref<SshConnectionConfig[]>([])
@@ -91,16 +92,27 @@ function toggleActive(conn: SshConnectionConfig): void {
               <p class="text-2xs text-text-disabled truncate">{{ conn.username }}@{{ conn.host }}:{{ conn.port }}</p>
             </div>
 
-            <!-- Active: disconnect button -->
-            <button
-              v-if="activeConnectionId === conn.id"
-              class="text-2xs font-medium shrink-0 rounded px-1.5 py-0.5 border transition-colors"
-              style="color: #f87171; border-color: #f8717155; background: #f8717111"
-              title="Disconnect"
-              @click.stop="toggleActive(conn)"
-            >
-              disconnect
-            </button>
+            <!-- Active: reindex + disconnect buttons -->
+            <div v-if="activeConnectionId === conn.id" class="flex items-center gap-1 shrink-0">
+              <button
+                class="p-1 rounded text-text-disabled hover:text-accent transition-colors"
+                title="Reindex remote project (refresh autocomplete)"
+                @click.stop="emit('reindex')"
+              >
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9.5 2v2.5H7M1.5 9V6.5H4" />
+                  <path d="M9 4.5A3.6 3.6 0 0 0 2.2 4M2 6.5A3.6 3.6 0 0 0 8.8 7" />
+                </svg>
+              </button>
+              <button
+                class="text-2xs font-medium rounded px-1.5 py-0.5 border transition-colors"
+                style="color: #f87171; border-color: #f8717155; background: #f8717111"
+                title="Disconnect"
+                @click.stop="toggleActive(conn)"
+              >
+                disconnect
+              </button>
+            </div>
 
             <!-- Inactive: connect + edit/delete on hover -->
             <template v-else>

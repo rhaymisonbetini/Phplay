@@ -25,6 +25,7 @@ const emit = defineEmits<{
   'remove-recent': [path: string]
   'load-snippet': [code: string]
   'ssh-activated': [config: SshConnectionConfig | null]
+  'ssh-reindex': []
   'autocomplete-changed': [enabled: boolean]
   close: []
 }>()
@@ -182,7 +183,10 @@ function formatDate(ts: number): string {
 
     <!-- ── SSH ── -->
     <template v-else-if="panel === 'ssh'">
-      <SshSidebar @connection-activated="emit('ssh-activated', $event)" />
+      <SshSidebar
+        @connection-activated="emit('ssh-activated', $event)"
+        @reindex="emit('ssh-reindex')"
+      />
     </template>
 
     <!-- ── SNIPPETS ── -->

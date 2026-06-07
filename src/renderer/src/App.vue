@@ -18,7 +18,7 @@ import WelcomeScreen from './components/WelcomeScreen.vue'
 import PhpConfigModal from './components/PhpConfigModal.vue'
 import ProjectDetectionToast from './components/ProjectDetectionToast.vue'
 import CommandPalette from './components/CommandPalette.vue'
-import type { ExecutionResult, Framework, RecentProject, SshConnectionConfig } from './types/electron'
+import type { ExecutionResult, Framework, RecentProject, SshConnectionConfig, SshSyncProgress } from './types/electron'
 import { useAppLogs } from './composables/useAppLogs'
 
 type ToastState =
@@ -49,7 +49,20 @@ const activeExecutionId = ref<string | null>(null)
 const liveOutput = ref<string>('')
 const showCommandPalette = ref(false)
 const activeSshConnection = ref<SshConnectionConfig | null>(null)
+const sshWorkspacePath = ref<string | null>(null)
+const sshSyncProgress = ref<SshSyncProgress | null>(null)
 const aiEnabled = ref(false)
+
+// In SSH mode the editor must point Intelephense at the synced local cache, not
+// the (absent) local project. Falls back to the local project path otherwise.
+const editorProjectPath = computed(() =>
+  activeSshConnection.value ? sshWorkspacePath.value : currentPath.value
+)
+const editorFramework = computed<Framework>(() =>
+  activeSshConnection.value
+    ? (activeSshConnection.value.framework ?? 'plain')
+    : projectStore.framework
+)
 
 const activeSession = computed(() => sessionStore.activeSession)
 const currentPath = computed(() => projectStore.currentProject?.path ?? null)
@@ -67,6 +80,15 @@ onMounted(async () => {
     lspState.value = state
     lspReady.value = state === 'ready'
     addLog({ category: 'lsp', level: state === 'error' ? 'error' : 'info', message: `state → ${state}`, detail: message })
+  })
+
+  // Track remote project sync progress (SSH code intelligence)
+  window.electronAPI.onSshSyncProgress((payload) => {
+    if (payload.connectionId !== activeSshConnection.value?.id) return
+    sshSyncProgress.value = payload
+    if (payload.phase === 'done' || payload.phase === 'error') {
+      setTimeout(() => { sshSyncProgress.value = null }, payload.phase === 'error' ? 6000 : 1500)
+    }
   })
 
   // Track active execution ID for cancel support
@@ -191,8 +213,54 @@ async function stopExecution(): Promise<void> {
   }
 }
 
-function handleSshActivated(config: SshConnectionConfig | null): void {
+async function handleSshActivated(config: SshConnectionConfig | null): Promise<void> {
   activeSshConnection.value = config
+
+  if (!config) {
+    sshWorkspacePath.value = null
+    sshSyncProgress.value = null
+    lspReady.value = false
+    lspState.value = 'stopped'
+    window.electronAPI.lspStop()
+    return
+  }
+
+  await syncRemoteWorkspace(config, false)
+}
+
+async function syncRemoteWorkspace(config: SshConnectionConfig, force: boolean): Promise<void> {
+  lspReady.value = false
+  lspState.value = 'stopped'
+
+  if (!force) {
+    const cached = await window.electronAPI.sshGetWorkspacePath(config.id)
+    if (cached) {
+      sshWorkspacePath.value = cached
+      window.electronAPI.lspStart(cached)
+      addLog({ category: 'lsp', level: 'info', message: `SSH:${config.name} — using cached remote index` })
+      return
+    }
+  }
+
+  sshSyncProgress.value = { connectionId: config.id, phase: 'connecting', message: 'Connecting…' }
+  const result = await window.electronAPI.sshSyncWorkspace(config.id, force)
+
+  // The connection may have been switched off while syncing.
+  if (activeSshConnection.value?.id !== config.id) return
+
+  if (result.ok && result.data) {
+    sshWorkspacePath.value = result.data.localPath
+    window.electronAPI.lspStart(result.data.localPath)
+    addLog({ category: 'lsp', level: 'info', message: `SSH:${config.name} — remote project indexed` })
+  } else {
+    sshSyncProgress.value = { connectionId: config.id, phase: 'error', message: result.error?.message ?? 'Sync failed' }
+    addLog({ category: 'error', level: 'error', message: `SSH:${config.name} — index failed`, detail: result.error?.message })
+  }
+}
+
+async function reindexRemoteWorkspace(): Promise<void> {
+  if (!activeSshConnection.value) return
+  await syncRemoteWorkspace(activeSshConnection.value, true)
 }
 
 function loadSnippetFromHistory(code: string): void {
@@ -294,6 +362,7 @@ register({ id: 'open-project', label: 'Open Project', shortcut: 'Ctrl+O', handle
 register({ id: 'run-snippet', label: 'Run Current Snippet', shortcut: 'Ctrl+Enter', handler: runCode })
 register({ id: 'stop-execution', label: 'Stop Execution', shortcut: 'Esc', handler: stopExecution })
 register({ id: 'restart-lsp', label: 'Restart PHP Intelligence', handler: restartLsp })
+register({ id: 'ssh-reindex', label: 'Reindex Remote Project (SSH)', handler: reindexRemoteWorkspace })
 register({ id: 'clear-output', label: 'Clear Output', shortcut: 'Ctrl+Shift+C', handler: clearOutput })
 register({ id: 'new-tab', label: 'New Tab', shortcut: 'Ctrl+T', handler: () => sessionStore.newSession() })
 register({ id: 'close-tab', label: 'Close Tab', shortcut: 'Ctrl+W', handler: () => sessionStore.closeSession(sessionStore.activeSessionId) })
@@ -341,6 +410,7 @@ useKeyboardShortcuts([
           @remove-recent="removeRecentProject"
           @load-snippet="loadSnippetFromHistory"
           @ssh-activated="handleSshActivated"
+          @ssh-reindex="reindexRemoteWorkspace"
           @autocomplete-changed="aiEnabled = $event"
           @close="activeSidebarPanel = null"
         />
@@ -364,9 +434,9 @@ useKeyboardShortcuts([
           :active-ssh="activeSshConnection"
           :ai-enabled="aiEnabled"
             :can-stop="!!activeExecutionId"
-            :project-path="currentPath"
+            :project-path="editorProjectPath"
             :lsp-ready="lspReady"
-            :framework="projectStore.framework"
+            :framework="editorFramework"
             :selected-php="selectedPhp"
             @update:code="sessionStore.setCode(sessionStore.activeSessionId, $event)"
             @run="runCode"
@@ -408,6 +478,41 @@ useKeyboardShortcuts([
     <PhpConfigModal v-if="showPhpConfig" @close="showPhpConfig = false" @apply="applyCustomPhp" />
 
     <ProjectDetectionToast :state="toastState" @dismiss="toastState = null" />
+
+    <!-- Remote project sync progress (SSH code intelligence) -->
+    <Transition name="sidebar-slide">
+      <div
+        v-if="sshSyncProgress && sshSyncProgress.phase !== 'done'"
+        class="fixed bottom-8 right-4 z-50 w-72 rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2.5 shadow-lg"
+      >
+        <div class="flex items-center gap-2">
+          <svg
+            v-if="sshSyncProgress.phase !== 'error'"
+            class="animate-spin shrink-0 text-accent"
+            width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+          >
+            <path d="M6 1a5 5 0 0 1 5 5" />
+          </svg>
+          <svg
+            v-else
+            class="shrink-0 text-error"
+            width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+          >
+            <path d="M6 1a5 5 0 1 0 0 10A5 5 0 0 0 6 1zM6 3.5v3M6 8.5h.01" />
+          </svg>
+          <span class="text-2xs font-semibold text-text-primary">
+            {{ sshSyncProgress.phase === 'error' ? 'Remote index failed' : 'Indexing remote project' }}
+          </span>
+        </div>
+        <p class="mt-1 text-2xs text-text-muted break-all">{{ sshSyncProgress.message }}</p>
+        <div
+          v-if="sshSyncProgress.phase === 'downloading' && sshSyncProgress.percent !== undefined"
+          class="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-bg-app"
+        >
+          <div class="h-full rounded-full bg-accent transition-all" :style="{ width: sshSyncProgress.percent + '%' }" />
+        </div>
+      </div>
+    </Transition>
 
     <CommandPalette
       v-if="showCommandPalette"

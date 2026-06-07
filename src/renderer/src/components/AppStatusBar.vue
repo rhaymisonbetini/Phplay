@@ -77,9 +77,12 @@ const currentPhpVersion = computed(() => {
   return props.phpVersions.find((p) => p.path === props.selectedPhp)?.version ?? null
 })
 
-const isIndexing = computed(() => props.hasProject && (props.lspState === 'initializing' || props.lspState === 'starting'))
+// PHP Intelligence applies to local projects and to SSH sessions (whose synced
+// remote cache is indexed by the same Intelephense instance).
+const hasIntelligence = computed(() => props.hasProject || !!props.activeSsh)
+const isIndexing = computed(() => hasIntelligence.value && (props.lspState === 'initializing' || props.lspState === 'starting'))
 const isLspError = computed(() => props.lspState === 'error')
-const isLspReady = computed(() => props.hasProject && props.lspState === 'ready')
+const isLspReady = computed(() => hasIntelligence.value && props.lspState === 'ready')
 </script>
 
 <template>
@@ -184,7 +187,7 @@ const isLspReady = computed(() => props.hasProject && props.lspState === 'ready'
         <span class="text-2xs font-medium">PHP ✓</span>
       </span>
 
-      <span v-if="(isIndexing || isLspError || isLspReady) && projectPath" class="text-border-strong">·</span>
+      <span v-if="(isIndexing || isLspError || isLspReady) && (projectPath || activeSsh)" class="text-border-strong">·</span>
 
       <!-- Saved indicator -->
       <span
