@@ -11,4 +11,5 @@ export interface SshConnectionConfig {
   passphrase?: string
   remotePath: string
   phpBinary?: string
+  framework?: 'laravel' | 'symfony' | 'wordpress' | 'plain'
 }

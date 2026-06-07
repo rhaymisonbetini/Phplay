@@ -31,7 +31,12 @@ export class SshExecutor {
       await Promise.race([transport.connect(config), timeout])
 
       const phpBinary = config.phpBinary || 'php'
-      const command = RemotePhpWrapper.buildCommand(phpBinary, code)
+      const command = RemotePhpWrapper.buildCommand(
+        phpBinary,
+        config.remotePath,
+        config.framework ?? 'plain',
+        code
+      )
 
       await Promise.race([
         transport.exec(command, (chunk, stream) => {
