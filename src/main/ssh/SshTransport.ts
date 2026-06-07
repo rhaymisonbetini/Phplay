@@ -1,6 +1,11 @@
 import { Client, type ConnectConfig, type SFTPWrapper } from 'ssh2'
 import { readFileSync } from 'fs'
+import { homedir } from 'os'
 import type { SshConnectionConfig } from './types'
+
+function expandPath(p: string): string {
+  return p.replace(/^~(?=\/|$)/, homedir())
+}
 
 export class SshTransport {
   private conn: Client | null = null
@@ -19,7 +24,7 @@ export class SshTransport {
       if (config.authType === 'password') {
         connectConfig.password = config.password
       } else {
-        connectConfig.privateKey = readFileSync(config.privateKeyPath!)
+        connectConfig.privateKey = readFileSync(expandPath(config.privateKeyPath!))
         if (config.passphrase) {
           connectConfig.passphrase = config.passphrase
         }

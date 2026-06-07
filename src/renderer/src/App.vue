@@ -314,6 +314,7 @@ useKeyboardShortcuts([
     <AppTitleBar
       :project-name="currentName ?? undefined"
       :session-name="activeSession?.name"
+      :active-ssh="activeSshConnection"
     />
 
     <SessionTabBar />
@@ -345,9 +346,9 @@ useKeyboardShortcuts([
         />
       </Transition>
 
-      <!-- Welcome screen: always show when no project is open -->
+      <!-- Welcome screen: show when no project AND no active SSH -->
       <WelcomeScreen
-        v-if="!projectStore.hasProject"
+        v-if="!projectStore.hasProject && !activeSshConnection"
         :recent-projects="recentProjects"
         @open-project="openProject"
         @open-recent="openRecentProject"
@@ -397,6 +398,7 @@ useKeyboardShortcuts([
       :is-saved="isSaved"
       :lsp-ready="lspReady"
       :lsp-state="lspState"
+      :active-ssh="activeSshConnection"
       @open-project="openProject"
       @select-php="selectedPhp = $event; projectStore.updatePhpBinary($event)"
       @open-php-config="showPhpConfig = true"

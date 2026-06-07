@@ -50,7 +50,7 @@ let definitionDisposable: monaco.IDisposable | null = null
 let referencesDisposable: monaco.IDisposable | null = null
 let renameDisposable: monaco.IDisposable | null = null
 let codeActionDisposable: monaco.IDisposable | null = null
-let aiCompletionDisposable: { dispose: () => void } | null = null
+let aiCompletionDisposable: { deregister: () => void } | null = null
 let diagnosticsCleanup: (() => void) | null = null
 
 // ── IpcResult unwrap ─────────────────────────────────────────────────────────
@@ -205,7 +205,7 @@ function registerLspProviders(uri: string): void {
       if (!result.ok || !result.data) return null
       const wsEdit = result.data as { changes?: Record<string, Array<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; newText: string }>> }
       if (!wsEdit.changes) return { edits: [] }
-      const edits: monaco.languages.WorkspaceTextEdit[] = []
+      const edits: monaco.languages.IWorkspaceTextEdit[] = []
       for (const [fileUri, fileEdits] of Object.entries(wsEdit.changes)) {
         for (const e of fileEdits) {
           edits.push({
@@ -237,7 +237,7 @@ function registerLspProviders(uri: string): void {
       const result = await window.electronAPI.lspCodeAction(uri, lspRange, lspDiagnostics)
       if (!result.ok || !result.data?.length) return { actions: [], dispose() {} }
       const actions: monaco.languages.CodeAction[] = (result.data as Array<{ title: string; edit?: { changes?: Record<string, Array<{ range: { start: { line: number; character: number }; end: { line: number; character: number } }; newText: string }>> } }>).map((a) => {
-        const edits: monaco.languages.WorkspaceTextEdit[] = []
+        const edits: monaco.languages.IWorkspaceTextEdit[] = []
         if (a.edit?.changes) {
           for (const [fileUri, fileEdits] of Object.entries(a.edit.changes)) {
             for (const e of fileEdits) {
@@ -347,15 +347,6 @@ function lspItemToMonaco(
       ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
       : undefined,
     range
-  }
-}
-
-function lspRangeToMonaco(r: LspRange): monaco.IRange {
-  return {
-    startLineNumber: r.start.line + 1,
-    startColumn: r.start.character + 1,
-    endLineNumber: r.end.line + 1,
-    endColumn: r.end.character + 1
   }
 }
 
@@ -476,14 +467,15 @@ onMounted(() => {
     trigger: 'onIdle',
     enableCaching: true,
     requestHandler: async ({ body }) => {
-      if (!props.aiEnabled) return null
+      if (!props.aiEnabled) return { completion: null }
 
+      const meta = body.completionMetadata
       const result = await window.electronAPI.aiGetCompletion(
         {
-          textBeforeCursor: body.textBeforeCursor,
-          textAfterCursor: body.textAfterCursor,
-          language: body.language,
-          cursorPosition: body.cursorPosition
+          textBeforeCursor: meta.textBeforeCursor,
+          textAfterCursor: meta.textAfterCursor,
+          language: meta.language ?? 'php',
+          cursorPosition: meta.cursorPosition
         },
         {
           framework: props.framework as 'laravel' | 'symfony' | 'wordpress' | 'plain' | undefined,
@@ -491,7 +483,7 @@ onMounted(() => {
         }
       )
 
-      return result.ok ? result.data ?? null : null
+      return { completion: result.ok ? result.data ?? null : null }
     },
     onError: (error) => {
       console.warn('[AI completion]', error.message)
@@ -548,7 +540,7 @@ onBeforeUnmount(async () => {
   disposeProviders()
   diagnosticsCleanup?.()
   diagnosticsCleanup = null
-  aiCompletionDisposable?.dispose()
+  aiCompletionDisposable?.deregister()
   aiCompletionDisposable = null
   editor?.dispose()
   editor = null

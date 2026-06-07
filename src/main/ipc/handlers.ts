@@ -492,20 +492,44 @@ export function registerIpcHandlers(): void {
     try {
       await Promise.race([transport.connect(config), timeout])
 
-      const whichOutput = await transport.exec('which php 2>/dev/null || echo "not_found"')
-      const phpBinary = whichOutput.trim()
+      const whichOutput = await transport.exec('which php 2>/dev/null || command -v php 2>/dev/null || echo "not_found"')
+      let phpBinary = whichOutput.trim()
+
+      if (!phpBinary || phpBinary === 'not_found') {
+        // Try common PHP paths on Debian/Ubuntu/CentOS
+        const candidates = ['/usr/bin/php', '/usr/local/bin/php', '/usr/bin/php8.2', '/usr/bin/php8.1', '/usr/bin/php8.0', '/usr/bin/php7.4']
+        for (const candidate of candidates) {
+          const check = await transport.exec(`test -x "${candidate}" && echo "found" || echo "missing"`)
+          if (check.trim() === 'found') {
+            phpBinary = candidate
+            break
+          }
+        }
+      }
 
       if (!phpBinary || phpBinary === 'not_found') {
         transport.disconnect()
-        return fail('PHP_NOT_FOUND', 'PHP binary not found on remote server')
+        return fail('PHP_NOT_FOUND', 'PHP binary not found on remote server. Set the path manually in "PHP Binary Path".')
       }
 
       const versionOutput = await transport.exec(`${phpBinary} --version 2>/dev/null | head -1`)
       const match = versionOutput.match(/PHP\s+([\d.]+)/)
       const phpVersion = match ? match[1] : 'unknown'
 
+      // Detect framework from remotePath
+      let framework: 'laravel' | 'symfony' | 'wordpress' | 'plain' = 'plain'
+      if (config.remotePath) {
+        const fwCheck = await transport.exec(
+          `test -f '${config.remotePath}/artisan' && echo laravel || (test -f '${config.remotePath}/bin/console' && echo symfony || (test -f '${config.remotePath}/wp-config.php' && echo wordpress || echo plain))`
+        )
+        const detected = fwCheck.trim() as typeof framework
+        if (['laravel', 'symfony', 'wordpress', 'plain'].includes(detected)) {
+          framework = detected
+        }
+      }
+
       transport.disconnect()
-      return ok({ connected: true, phpBinary, phpVersion })
+      return ok({ connected: true, phpBinary, phpVersion, framework })
     } catch (err: unknown) {
       transport.disconnect()
       const message = err instanceof Error ? err.message : String(err)

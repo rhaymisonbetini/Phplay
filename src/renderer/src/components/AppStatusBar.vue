@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { SshConnectionConfig } from '../types/electron'
 
 type Framework = 'laravel' | 'symfony' | 'wordpress' | 'plain'
 
@@ -18,6 +19,7 @@ const props = withDefaults(
     lspReady?: boolean
     lspState?: string
     hasProject?: boolean
+    activeSsh?: SshConnectionConfig | null
   }>(),
   {
     framework: 'plain',
@@ -32,7 +34,8 @@ const props = withDefaults(
     isSaved: true,
     lspReady: true,
     lspState: 'stopped',
-    hasProject: false
+    hasProject: false,
+    activeSsh: null
   }
 )
 
@@ -197,9 +200,21 @@ const isLspReady = computed(() => props.hasProject && props.lspState === 'ready'
         <span class="text-2xs">{{ isSaved ? 'saved' : 'saving…' }}</span>
       </span>
 
-      <span class="text-border-strong" v-if="projectPath">·</span>
+      <span class="text-border-strong" v-if="projectPath || activeSsh">·</span>
 
-      <span class="status-item gap-1">
+      <!-- SSH active indicator -->
+      <span
+        v-if="activeSsh"
+        class="status-item gap-1 font-medium"
+        :style="{ color: activeSsh.color }"
+        :title="`SSH: ${activeSsh.username}@${activeSsh.host}:${activeSsh.port}`"
+      >
+        <span class="h-1.5 w-1.5 rounded-full" :style="{ background: activeSsh.color, boxShadow: `0 0 4px ${activeSsh.color}` }" />
+        <span>SSH · {{ activeSsh.name }}</span>
+      </span>
+
+      <!-- Local indicator -->
+      <span v-else class="status-item gap-1">
         <span class="h-1.5 w-1.5 rounded-full bg-success" />
         <span>local</span>
       </span>

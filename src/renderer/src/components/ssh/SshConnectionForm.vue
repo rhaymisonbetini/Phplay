@@ -21,10 +21,11 @@ const form = reactive<Omit<SshConnectionConfig, 'id'>>({
   username: props.initial?.username ?? '',
   authType: props.initial?.authType ?? 'password',
   password: props.initial?.password ?? '',
-  privateKeyPath: props.initial?.privateKeyPath ?? '',
+  privateKeyPath: props.initial?.privateKeyPath ?? '~/.ssh/id_rsa',
   passphrase: props.initial?.passphrase ?? '',
   remotePath: props.initial?.remotePath ?? '/var/www',
-  phpBinary: props.initial?.phpBinary ?? ''
+  phpBinary: props.initial?.phpBinary ?? '',
+  framework: props.initial?.framework ?? 'plain'
 })
 
 const testing = ref(false)
@@ -34,6 +35,11 @@ const testResult = ref<{ ok: boolean; message: string } | null>(null)
 const isEditing = computed(() => !!props.initial?.id)
 
 async function testConnection(): Promise<void> {
+  if (form.authType === 'key' && !form.privateKeyPath?.trim()) {
+    testResult.value = { ok: false, message: 'Private key path is required for SSH Key auth.' }
+    return
+  }
+
   testing.value = true
   testResult.value = null
 
@@ -42,11 +48,14 @@ async function testConnection(): Promise<void> {
   try {
     const result = await window.electronAPI.sshTest(config)
     if (result.ok && result.data) {
+      const fw = result.data.framework ?? 'plain'
+      const fwLabel = { laravel: 'Laravel', symfony: 'Symfony', wordpress: 'WordPress', plain: 'PHP' }[fw] ?? fw
       testResult.value = {
         ok: true,
-        message: `Connected — PHP ${result.data.phpVersion} at ${result.data.phpBinary}`
+        message: `Connected — PHP ${result.data.phpVersion} · ${fwLabel} detected`
       }
       form.phpBinary = result.data.phpBinary
+      form.framework = fw
     } else {
       testResult.value = {
         ok: false,
@@ -160,10 +169,30 @@ async function save(): Promise<void> {
       <input v-model="form.remotePath" class="form-input" placeholder="/var/www/myapp" />
     </div>
 
+    <!-- PHP Binary + Framework (auto-detected) -->
+    <div class="flex gap-2 items-end">
+      <div class="flex-1">
+        <label class="form-label">PHP Binary Path</label>
+        <input v-model="form.phpBinary" class="form-input" placeholder="/usr/bin/php" />
+      </div>
+      <div
+        v-if="form.framework && form.framework !== 'plain'"
+        class="shrink-0 pb-1 rounded px-2 py-1 text-2xs font-semibold"
+        :class="{
+          'bg-red-900/30 text-red-400 border border-red-800/50': form.framework === 'laravel',
+          'bg-zinc-800/50 text-zinc-400 border border-zinc-700': form.framework === 'symfony',
+          'bg-blue-900/30 text-blue-400 border border-blue-800/50': form.framework === 'wordpress',
+        }"
+      >
+        {{ { laravel: 'Laravel', symfony: 'Symfony', wordpress: 'WordPress' }[form.framework] }}
+      </div>
+    </div>
+    <p class="mt-0.5 text-2xs text-text-disabled">PHP path and framework are auto-detected on "Test".</p>
+
     <!-- Test Result -->
     <div
       v-if="testResult"
-      class="rounded px-2 py-1.5 text-2xs"
+      class="rounded px-2 py-1.5 text-2xs break-all"
       :class="testResult.ok ? 'bg-green-900/20 text-green-400 border border-green-800' : 'bg-red-900/20 text-red-400 border border-red-800'"
     >
       {{ testResult.message }}
