@@ -167,7 +167,25 @@ const api = {
     ipcRenderer.invoke('ssh:test', config),
   sshExecute: (code: string, connectionId: string): Promise<unknown> =>
     ipcRenderer.invoke('ssh:execute', code, connectionId),
-  sshCancel: (): Promise<boolean> => ipcRenderer.invoke('ssh:cancel')
+  sshCancel: (): Promise<boolean> => ipcRenderer.invoke('ssh:cancel'),
+  sshSyncWorkspace: (connectionId: string, force?: boolean): Promise<unknown> =>
+    ipcRenderer.invoke('ssh:syncWorkspace', connectionId, force),
+  sshGetWorkspacePath: (connectionId: string): Promise<string | null> =>
+    ipcRenderer.invoke('ssh:getWorkspacePath', connectionId),
+  onSshSyncProgress: (
+    cb: (payload: {
+      connectionId: string
+      phase: string
+      percent?: number
+      message?: string
+      transferredBytes?: number
+      totalBytes?: number
+    }) => void
+  ): (() => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, payload: Parameters<typeof cb>[0]): void => cb(payload)
+    ipcRenderer.on('ssh:syncProgress', handler)
+    return () => ipcRenderer.removeListener('ssh:syncProgress', handler)
+  }
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

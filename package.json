@@ -35,6 +35,7 @@
     "monacopilot": "^1.2.12",
     "pinia": "^2.1.7",
     "ssh2": "^1.17.0",
+    "tar": "^7.5.16",
     "vue": "^3.4.27"
   },
   "devDependencies": {

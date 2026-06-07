@@ -103,6 +103,39 @@ export class SshTransport {
     })
   }
 
+  downloadFile(
+    remotePath: string,
+    localPath: string,
+    onProgress?: (transferred: number, total: number) => void
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.conn) {
+        reject(new Error('Not connected'))
+        return
+      }
+
+      this.conn.sftp((err, sftp: SFTPWrapper) => {
+        if (err) {
+          reject(err)
+          return
+        }
+
+        sftp.fastGet(
+          remotePath,
+          localPath,
+          { step: (transferred, _chunk, total) => onProgress?.(transferred, total) },
+          (getErr) => {
+            if (getErr) {
+              reject(getErr)
+            } else {
+              resolve()
+            }
+          }
+        )
+      })
+    })
+  }
+
   disconnect(): void {
     this.conn?.end()
     this.conn = null

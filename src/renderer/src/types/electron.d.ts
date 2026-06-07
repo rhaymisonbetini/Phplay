@@ -53,6 +53,17 @@ export interface SshConnectionConfig {
   framework?: 'laravel' | 'symfony' | 'wordpress' | 'plain'
 }
 
+export type SshSyncPhase = 'connecting' | 'archiving' | 'downloading' | 'extracting' | 'done' | 'error'
+
+export interface SshSyncProgress {
+  connectionId: string
+  phase: SshSyncPhase
+  percent?: number
+  message?: string
+  transferredBytes?: number
+  totalBytes?: number
+}
+
 export interface PhpBinary {
   path: string
   version: string
@@ -157,6 +168,9 @@ declare global {
       sshTest: (config: SshConnectionConfig) => Promise<{ ok: boolean; data?: { connected: boolean; phpBinary: string; phpVersion: string; framework: 'laravel' | 'symfony' | 'wordpress' | 'plain' }; error?: { code: string; message: string } }>
       sshExecute: (code: string, connectionId: string) => Promise<ExecutionResult>
       sshCancel: () => Promise<boolean>
+      sshSyncWorkspace: (connectionId: string, force?: boolean) => Promise<{ ok: boolean; data?: { localPath: string; cached: boolean }; error?: { code: string; message: string } }>
+      sshGetWorkspacePath: (connectionId: string) => Promise<string | null>
+      onSshSyncProgress: (cb: (payload: SshSyncProgress) => void) => (() => void)
     }
   }
 }
