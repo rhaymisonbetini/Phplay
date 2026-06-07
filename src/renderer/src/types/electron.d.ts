@@ -50,6 +50,7 @@ export interface SshConnectionConfig {
   passphrase?: string
   remotePath: string
   phpBinary?: string
+  framework?: 'laravel' | 'symfony' | 'wordpress' | 'plain'
 }
 
 export interface PhpBinary {
@@ -153,7 +154,7 @@ declare global {
       sshGet: (id: string) => Promise<SshConnectionConfig | null>
       sshSave: (config: SshConnectionConfig) => Promise<SshConnectionConfig>
       sshDelete: (id: string) => Promise<void>
-      sshTest: (config: SshConnectionConfig) => Promise<{ ok: boolean; data?: { connected: boolean; phpBinary: string; phpVersion: string }; error?: { code: string; message: string } }>
+      sshTest: (config: SshConnectionConfig) => Promise<{ ok: boolean; data?: { connected: boolean; phpBinary: string; phpVersion: string; framework: 'laravel' | 'symfony' | 'wordpress' | 'plain' }; error?: { code: string; message: string } }>
       sshExecute: (code: string, connectionId: string) => Promise<ExecutionResult>
       sshCancel: () => Promise<boolean>
     }
