@@ -20,6 +20,7 @@ import type { ExecutionContext } from '../executor/types'
 import { SshConnectionStore } from '../ssh/SshConnectionStore'
 import { SshTransport } from '../ssh/SshTransport'
 import { SshExecutor } from '../ssh/SshExecutor'
+import { RemoteWorkspaceSync } from '../ssh/RemoteWorkspaceSync'
 import type { SshConnectionConfig } from '../ssh/types'
 import { AiCompletionService } from '../ai/AiCompletionService'
 import type { CompletionRequest, ProjectContext } from '../ai/AiCompletionService'
@@ -32,6 +33,7 @@ const historyService = new HistoryService()
 const snippetService = new SnippetService()
 const lspManager = new LanguageServerManager()
 let sshStore: SshConnectionStore
+let remoteWorkspaceSync: RemoteWorkspaceSync
 let activeSshExecutor: SshExecutor | null = null
 let recentProjects: RecentProjects
 let workspaceService: WorkspaceService
@@ -48,6 +50,7 @@ export function registerIpcHandlers(): void {
   recentProjects = new RecentProjects(app.getPath('userData'))
   workspaceService = new WorkspaceService(app.getPath('userData'))
   sshStore = new SshConnectionStore(app.getPath('userData'))
+  remoteWorkspaceSync = new RemoteWorkspaceSync(app.getPath('userData'))
 
   ipcMain.handle('php:detect', async () => {
     return phpDetector.detect()
@@ -565,5 +568,32 @@ export function registerIpcHandlers(): void {
     activeSshExecutor?.cancel()
     activeSshExecutor = null
     return true
+  })
+
+  // Mirror the remote project into a local cache so Intelephense can index it.
+  ipcMain.handle('ssh:syncWorkspace', async (event, connectionId: string, force = false) => {
+    const config = await sshStore.get(connectionId)
+    if (!config) return fail('SSH_NOT_FOUND', `SSH connection ${connectionId} not found`)
+
+    if (!force) {
+      const cached = remoteWorkspaceSync.getCachedPath(connectionId)
+      if (cached) return ok({ localPath: cached, cached: true })
+    }
+
+    try {
+      const localPath = await remoteWorkspaceSync.sync(config, (progress) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('ssh:syncProgress', { connectionId, ...progress })
+        }
+      })
+      return ok({ localPath, cached: false })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return fail('SSH_SYNC_FAILED', message)
+    }
+  })
+
+  ipcMain.handle('ssh:getWorkspacePath', async (_event, connectionId: string) => {
+    return remoteWorkspaceSync.getCachedPath(connectionId)
   })
 }
