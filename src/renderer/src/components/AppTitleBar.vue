@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import type { SshConnectionConfig } from '../types/electron'
+
 defineProps<{
   projectName?: string
   sessionName?: string
+  activeSsh?: SshConnectionConfig | null
 }>()
 </script>
 
@@ -27,18 +30,38 @@ defineProps<{
       <span class="text-xs font-semibold tracking-wide" style="color: var(--text-primary)">Phplay</span>
     </div>
 
-    <div class="text-2xs" style="color: var(--text-disabled)">
-      <span v-if="projectName" style="color: var(--text-secondary)">{{ projectName }}</span>
-      <span v-if="projectName && sessionName" class="mx-1 opacity-40">·</span>
-      <span v-if="sessionName" style="color: var(--text-disabled)">{{ sessionName }}</span>
-      <span v-else class="opacity-50">PHP REPL</span>
+    <div class="text-2xs flex items-center gap-1.5" style="color: var(--text-disabled)">
+      <!-- SSH mode: show SSH badge + connection name -->
+      <template v-if="activeSsh">
+        <span
+          class="flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-semibold"
+          :style="{ background: activeSsh.color + '28', color: activeSsh.color, border: '1px solid ' + activeSsh.color + '55' }"
+        >
+          <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="0.5" y="0.5" width="9" height="4" rx="0.75" />
+            <rect x="0.5" y="5.5" width="9" height="4" rx="0.75" />
+          </svg>
+          SSH
+        </span>
+        <span style="color: var(--text-secondary)" class="font-medium">{{ activeSsh.name }}</span>
+        <span class="opacity-40 mx-0.5">·</span>
+        <span class="opacity-50">{{ activeSsh.username }}@{{ activeSsh.host }}</span>
+      </template>
+
+      <!-- Normal mode -->
+      <template v-else>
+        <span v-if="projectName" style="color: var(--text-secondary)">{{ projectName }}</span>
+        <span v-if="projectName && sessionName" class="mx-1 opacity-40">·</span>
+        <span v-if="sessionName" style="color: var(--text-disabled)">{{ sessionName }}</span>
+        <span v-else-if="!projectName" class="opacity-50">PHP REPL</span>
+      </template>
     </div>
 
     <div class="no-drag">
       <span
         class="rounded-full px-2 py-0.5 text-2xs"
         style="background: var(--bg-overlay); color: var(--text-disabled)"
-      >v0.1.0</span>
+      >v0.2.0</span>
     </div>
   </div>
 </template>

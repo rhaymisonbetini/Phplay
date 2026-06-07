@@ -91,35 +91,47 @@ function toggleActive(conn: SshConnectionConfig): void {
               <p class="text-2xs text-text-disabled truncate">{{ conn.username }}@{{ conn.host }}:{{ conn.port }}</p>
             </div>
 
-            <!-- Active badge -->
-            <span
+            <!-- Active: disconnect button -->
+            <button
               v-if="activeConnectionId === conn.id"
-              class="text-2xs text-green-400 font-medium shrink-0"
+              class="text-2xs font-medium shrink-0 rounded px-1.5 py-0.5 border transition-colors"
+              style="color: #f87171; border-color: #f8717155; background: #f8717111"
+              title="Disconnect"
+              @click.stop="toggleActive(conn)"
             >
-              active
-            </span>
+              disconnect
+            </button>
 
-            <!-- Actions -->
-            <div class="hidden group-hover:flex gap-1 shrink-0">
+            <!-- Inactive: connect + edit/delete on hover -->
+            <template v-else>
               <button
-                class="p-0.5 rounded text-text-disabled hover:text-text-primary transition-colors"
-                title="Edit"
-                @click.stop="openEdit(conn)"
+                class="text-2xs font-medium shrink-0 rounded px-1.5 py-0.5 border border-border-subtle text-text-muted hover:border-accent hover:text-accent transition-colors opacity-0 group-hover:opacity-100"
+                title="Connect"
+                @click.stop="toggleActive(conn)"
               >
-                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M7.5 1.5l2 2L3 10H1v-2L7.5 1.5z" />
-                </svg>
+                connect
               </button>
-              <button
-                class="p-0.5 rounded text-text-disabled hover:text-error transition-colors"
-                title="Delete"
-                @click.stop="remove(conn.id)"
-              >
-                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 3h9M4 3V1.5h3V3M2 3l.5 6.5a.75.75 0 0 0 .75.75h5.5a.75.75 0 0 0 .75-.75L10 3" />
-                </svg>
-              </button>
-            </div>
+              <div class="hidden group-hover:flex gap-1 shrink-0">
+                <button
+                  class="p-0.5 rounded text-text-disabled hover:text-text-primary transition-colors"
+                  title="Edit"
+                  @click.stop="openEdit(conn)"
+                >
+                  <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7.5 1.5l2 2L3 10H1v-2L7.5 1.5z" />
+                  </svg>
+                </button>
+                <button
+                  class="p-0.5 rounded text-text-disabled hover:text-error transition-colors"
+                  title="Delete"
+                  @click.stop="remove(conn.id)"
+                >
+                  <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 3h9M4 3V1.5h3V3M2 3l.5 6.5a.75.75 0 0 0 .75.75h5.5a.75.75 0 0 0 .75-.75L10 3" />
+                  </svg>
+                </button>
+              </div>
+            </template>
           </div>
         </div>
       </div>
