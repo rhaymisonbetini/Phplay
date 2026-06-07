@@ -101,7 +101,7 @@ export class IntelephenseLsp extends EventEmitter {
     }
   }
 
-  private dispatch(msg: { id?: number; method?: string; result?: unknown; error?: { message: string } }): void {
+  private dispatch(msg: { id?: number; method?: string; params?: unknown; result?: unknown; error?: { message: string } }): void {
     if (msg.id !== undefined && this.pending.has(msg.id)) {
       const req = this.pending.get(msg.id)!
       this.pending.delete(msg.id)
